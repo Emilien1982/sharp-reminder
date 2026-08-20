@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">SharpReminder</string>
+    <string name="notification_channel_name">Rappels</string>
+    <string name="notification_channel_description">Notifications déclenchées par vos rappels</string>
+    <string name="notification_title">Rappel</string>
 </resources>

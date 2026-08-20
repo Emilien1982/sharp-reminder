@@ -18,6 +18,18 @@ export const fr = {
     listTitle: 'Rappels',
     empty: 'Aucun rappel pour le moment.',
     emptyHint: 'Appuyez sur + pour en créer un.',
+    neverFired: 'Jamais déclenché',
+    firedAt: 'Déclenché le {{date}}',
+    deleteConfirmTitle: 'Supprimer ce rappel ?',
+  },
+  devPanel: {
+    title: 'Panneau de test (temporaire)',
+    createInTwoMinutes: 'Créer un rappel dans 2 minutes',
+    createInOneMinute: 'Créer un rappel dans 1 minute',
+    engineState: 'Moteur : {{count}} règle(s), écoutes actives : {{types}}',
+    noActiveListener: 'aucune',
+    notificationsDenied:
+      'Notifications refusées — le rappel ne s’affichera pas.',
   },
   triggers: {
     datetime: 'Date et heure',

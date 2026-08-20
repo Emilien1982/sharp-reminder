@@ -28,3 +28,15 @@ jest.mock('react-native-localize', () => ({
     },
   ]),
 }));
+
+jest.mock('@/native/NativeTriggerEngine', () => ({
+  __esModule: true,
+  default: {
+    syncRules: jest.fn(async () => undefined),
+    getTriggerCosts: jest.fn(async () => '{"datetime":"light"}'),
+    drainFiredEvents: jest.fn(async () => '[]'),
+    getDiagnostics: jest.fn(
+      async () => '{"activeTriggerTypes":[],"ruleCount":0,"lastSignalAt":{}}',
+    ),
+  },
+}));

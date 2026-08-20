@@ -1,0 +1,5 @@
+<resources>
+    <string name="notification_channel_name">Reminders</string>
+    <string name="notification_channel_description">Notifications triggered by your reminders</string>
+    <string name="notification_title">Reminder</string>
+</resources>

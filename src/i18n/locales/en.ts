@@ -13,6 +13,17 @@ export const en: TranslationResources = {
     listTitle: 'Reminders',
     empty: 'No reminders yet.',
     emptyHint: 'Tap + to create one.',
+    neverFired: 'Never fired',
+    firedAt: 'Fired on {{date}}',
+    deleteConfirmTitle: 'Delete this reminder?',
+  },
+  devPanel: {
+    title: 'Test panel (temporary)',
+    createInTwoMinutes: 'Create a reminder in 2 minutes',
+    createInOneMinute: 'Create a reminder in 1 minute',
+    engineState: 'Engine: {{count}} rule(s), active listeners: {{types}}',
+    noActiveListener: 'none',
+    notificationsDenied: 'Notifications denied — the reminder will not appear.',
   },
   triggers: {
     datetime: 'Date and time',
