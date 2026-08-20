@@ -1,0 +1,218 @@
+{
+  "description": "Cas de référence de l'évaluateur de déclencheurs. Ce fichier est consommé par les trois implémentations : Jest (TypeScript), JUnit (Kotlin) et XCTest (Swift). Un cas ajouté ici est vérifié sur les trois plateformes d'un coup. Ne jamais modifier un cas pour faire passer une implémentation : corriger l'implémentation.",
+  "satisfactionCases": [
+    {
+      "name": "liste vide en OU : ne se déclenche jamais",
+      "combinator": "OR",
+      "conditions": [],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "liste vide en ET : ne se déclenche jamais malgré la vacuité logique",
+      "combinator": "AND",
+      "conditions": [],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+
+    {
+      "name": "date : instant non encore atteint",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-20T18:00:00Z" }],
+      "signal": { "now": "2026-08-20T17:59:59Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "date : instant atteint exactement",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-20T18:00:00Z" }],
+      "signal": { "now": "2026-08-20T18:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "date : instant dépassé",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-20T18:00:00Z" }],
+      "signal": { "now": "2026-08-20T18:00:01Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "date : comparaison correcte entre deux fuseaux horaires",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-20T20:00:00+02:00" }],
+      "signal": { "now": "2026-08-20T18:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+
+    {
+      "name": "wifi connexion : réseau attendu",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "wifi connexion : autre réseau",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": "Bureau", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "wifi connexion : aucun réseau",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "wifi déconnexion : encore connecté au réseau visé",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "disconnect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "wifi déconnexion : plus aucun réseau",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "disconnect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "wifi déconnexion : basculé sur un autre réseau",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "disconnect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": "Bureau", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+
+    {
+      "name": "bluetooth connexion : appareil présent",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "bluetooth", "deviceId": "AA:BB:CC:DD:EE:FF", "deviceName": "Casque", "direction": "connect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": ["AA:BB:CC:DD:EE:FF"], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "bluetooth connexion : un autre appareil est connecté",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "bluetooth", "deviceId": "AA:BB:CC:DD:EE:FF", "deviceName": "Casque", "direction": "connect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": ["11:22:33:44:55:66"], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "bluetooth déconnexion : appareil absent",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "bluetooth", "deviceId": "AA:BB:CC:DD:EE:FF", "deviceName": "Casque", "direction": "disconnect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "bluetooth déconnexion : appareil encore connecté",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "bluetooth", "deviceId": "AA:BB:CC:DD:EE:FF", "deviceName": "Casque", "direction": "disconnect" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": ["AA:BB:CC:DD:EE:FF"], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+
+    {
+      "name": "lieu entrée : zone occupée",
+      "combinator": "OR",
+      "conditions": [{ "id": "zone-maison", "type": "location", "latitude": 48.6921, "longitude": 6.1844, "radiusMeters": 150, "direction": "enter" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": ["zone-maison"] },
+      "expected": true
+    },
+    {
+      "name": "lieu entrée : zone quittée",
+      "combinator": "OR",
+      "conditions": [{ "id": "zone-maison", "type": "location", "latitude": 48.6921, "longitude": 6.1844, "radiusMeters": 150, "direction": "enter" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "lieu sortie : hors de la zone",
+      "combinator": "OR",
+      "conditions": [{ "id": "zone-maison", "type": "location", "latitude": 48.6921, "longitude": 6.1844, "radiusMeters": 150, "direction": "exit" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "lieu sortie : une AUTRE zone est occupée, pas celle-ci",
+      "combinator": "OR",
+      "conditions": [{ "id": "zone-maison", "type": "location", "latitude": 48.6921, "longitude": 6.1844, "radiusMeters": 150, "direction": "exit" }],
+      "signal": { "now": "2026-08-20T12:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": ["zone-bureau"] },
+      "expected": true
+    },
+
+    {
+      "name": "ET : les deux conditions satisfaites",
+      "combinator": "AND",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" }
+      ],
+      "signal": { "now": "2026-08-20T19:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "ET : à la maison mais trop tôt",
+      "combinator": "AND",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" }
+      ],
+      "signal": { "now": "2026-08-20T14:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "ET : l'heure est passée mais pas à la maison",
+      "combinator": "AND",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" }
+      ],
+      "signal": { "now": "2026-08-20T19:00:00Z", "wifiSsid": "Bureau", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "ET sur trois conditions : une seule fausse suffit à tout invalider",
+      "combinator": "AND",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" },
+        { "id": "zone-maison", "type": "location", "latitude": 48.6921, "longitude": 6.1844, "radiusMeters": 150, "direction": "enter" }
+      ],
+      "signal": { "now": "2026-08-20T19:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "OU : une seule condition satisfaite suffit",
+      "combinator": "OR",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" }
+      ],
+      "signal": { "now": "2026-08-20T09:00:00Z", "wifiSsid": "Maison", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "OU : aucune condition satisfaite",
+      "combinator": "OR",
+      "conditions": [
+        { "id": "c1", "type": "wifi", "ssid": "Maison", "direction": "connect" },
+        { "id": "c2", "type": "datetime", "at": "2026-08-20T18:00:00Z" }
+      ],
+      "signal": { "now": "2026-08-20T09:00:00Z", "wifiSsid": "Bureau", "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    }
+  ],
+
+  "risingEdgeCases": [
+    { "name": "transition faux vers vrai : déclenche", "previous": false, "current": true, "expected": true },
+    { "name": "déjà vrai et reste vrai : ne déclenche pas", "previous": true, "current": true, "expected": false },
+    { "name": "faux et reste faux : ne déclenche pas", "previous": false, "current": false, "expected": false },
+    { "name": "retombée de vrai à faux : ne déclenche pas", "previous": true, "current": false, "expected": false }
+  ]
+}

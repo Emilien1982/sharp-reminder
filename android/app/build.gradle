@@ -93,6 +93,19 @@ android {
             keyPassword 'android'
         }
     }
+    sourceSets {
+        // Les cas de l'évaluateur sont partagés avec Jest et XCTest. Les
+        // exposer comme ressource de test permet aux tests JUnit de les lire
+        // depuis le classpath, sans chemin relatif fragile vers la racine.
+        test {
+            resources.srcDirs += ["$rootDir/../shared/fixtures"]
+        }
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -110,6 +123,12 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Compatibilité des notifications et des alarmes selon la version d'Android
+    implementation("androidx.core:core-ktx:1.13.1")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
