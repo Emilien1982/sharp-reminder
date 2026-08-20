@@ -1,8 +1,28 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
-    "types": ["jest"]
+    "types": ["jest"],
+
+    // --- Durcissements au-delà de `strict: true` ---
+    // Un accès par index peut renvoyer undefined : essentiel pour l'évaluateur
+    // de règles, qui manipule des tableaux de conditions de taille variable.
+    "noUncheckedIndexedAccess": true,
+    // Interdit d'oublier `override` en redéfinissant un membre hérité.
+    "noImplicitOverride": true,
+    // Un `case` sans `break` devient une erreur : le registre de triggers
+    // dispatche par type, un fallthrough silencieux y serait un bug grave.
+    "noFallthroughCasesInSwitch": true,
+    // Le code mort ne passe pas la compilation.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    // --- Alias d'import ---
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@shared/*": ["shared/*"]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "shared/**/*.ts", "*.ts", "*.tsx", "__tests__/**/*"],
+  "exclude": ["**/node_modules", "**/Pods", "android", "ios"]
 }
