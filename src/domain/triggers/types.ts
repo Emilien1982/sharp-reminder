@@ -8,7 +8,12 @@
  */
 
 /** Types de déclencheurs supportés en V1. */
-export const TRIGGER_TYPES = ['datetime', 'wifi', 'bluetooth', 'location'] as const;
+export const TRIGGER_TYPES = [
+  'datetime',
+  'wifi',
+  'bluetooth',
+  'location',
+] as const;
 
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 
@@ -84,5 +89,7 @@ export type Combinator = 'AND' | 'OR';
  * `TriggerCondition`. Le code ne compile plus si un type n'est pas traité.
  */
 export function assertNeverCondition(condition: never): never {
-  throw new Error(`Type de déclencheur non géré : ${JSON.stringify(condition)}`);
+  throw new Error(
+    `Type de déclencheur non géré : ${JSON.stringify(condition)}`,
+  );
 }

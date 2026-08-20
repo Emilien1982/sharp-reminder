@@ -8,7 +8,15 @@ module.exports = {
       'module-resolver',
       {
         root: ['./'],
-        extensions: ['.ios.ts', '.android.ts', '.ts', '.ios.tsx', '.android.tsx', '.tsx', '.json'],
+        extensions: [
+          '.ios.ts',
+          '.android.ts',
+          '.ts',
+          '.ios.tsx',
+          '.android.tsx',
+          '.tsx',
+          '.json',
+        ],
         alias: {
           '@': './src',
           '@shared': './shared',
