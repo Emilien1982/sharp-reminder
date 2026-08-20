@@ -129,3 +129,65 @@ natifs** : un déclencheur représente environ six fichiers Kotlin ou Swift. La
 dérive classique est de valider en diagonale parce que « ça compile ». C'est
 précisément ce que la porte de validation sur appareil physique doit empêcher :
 un build réussi ne prouve rien sur un déclencheur.
+
+---
+
+## Phase 2 — Moteur de déclencheurs
+
+### Le filet de sécurité, éprouvé pour de vrai
+
+L'évaluateur AND/OU existe en trois exemplaires (TypeScript, Kotlin, Swift).
+Pour vérifier que `shared/fixtures/evaluator-cases.json` protège réellement
+contre une divergence, la version Kotlin a été **volontairement cassée** :
+`isAfter` au lieu de `!isBefore`. Un seul caractère de différence, qui aurait
+empêché tout rappel réglé sur un instant précis de sonner.
+
+Deux cas partagés ont immédiatement échoué. Le filet fonctionne.
+
+*Leçon* : un mécanisme de protection non éprouvé n'est pas une protection,
+c'est une hypothèse. Demander à Claude de **casser volontairement** le code
+pour montrer que le test l'attrape coûte deux minutes et vaut plus qu'une
+promesse.
+
+### L'erreur « undefined is not a function »
+
+À la première ouverture après l'ajout du moteur natif, l'application affichait
+une erreur illisible. Diagnostic :
+
+`org.json` sur Android ne sait pas sérialiser une `List` Kotlin. Passer
+directement `registry.activeTypeNames()` à `JSONObject.put` produisait la
+*chaîne* `"[datetime]"` au lieu d'un tableau JSON. Côté JavaScript, cette
+chaîne possède une propriété `length`, la vérification naïve
+`activeTriggerTypes.length > 0` passait donc, et l'échec ne survenait qu'à
+l'appel de `.join()`, plusieurs lignes plus loin que sa cause.
+
+Deux corrections ont été apportées, pas une :
+
+1. Le défaut lui-même : `JSONArray(...)` explicite côté Kotlin.
+2. **La classe de défaut** : `src/native/parsing.ts` valide désormais toute
+   charge utile reçue du natif et nomme le champ fautif. Six tests reproduisent
+   les malformations, dont celle-ci exactement.
+
+Détail instructif : un test JUnit n'aurait **pas** reproduit ce bug, car
+l'`org.json` de Maven, utilisé par les tests unitaires, sérialise correctement
+les collections — contrairement à celui d'Android. La protection devait donc
+vivre côté JavaScript, à la frontière.
+
+*Leçon* : face à un bug, la bonne demande n'est pas « corrige ça » mais
+« corrige ça **et** rends cette catégorie d'erreur détectable ». Sinon le même
+défaut réapparaît sous une autre forme au déclencheur suivant.
+
+### Une erreur de ma part, à connaître
+
+En vérifiant les tests, j'ai écrit `npm run verify 2>&1 | grep -E "Tests:|error"`
+et conclu au succès parce que le filtre ne remontait rien — alors que Prettier
+échouait. J'avais lu un **log filtré** au lieu du **code de sortie**, exactement
+la faute que je venais de recommander d'éviter. La forme correcte :
+
+```bash
+npm run verify && echo "✅" || echo "❌"
+```
+
+*Leçon* : quand Claude annonce qu'une vérification passe, la question utile est
+« sur quoi te fondes-tu ? ». Un `grep` sur une sortie n'est pas une preuve ;
+un code de sortie en est une.

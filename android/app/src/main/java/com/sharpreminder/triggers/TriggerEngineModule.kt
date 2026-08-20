@@ -2,7 +2,9 @@ package com.sharpreminder.triggers
 
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
+import android.util.Log
 import com.facebook.react.module.annotations.ReactModule
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -36,7 +38,10 @@ class TriggerEngineModule(
             val costs = TriggerRegistry(context).costs()
             JSONObject(costs as Map<*, *>).toString()
         }
-            .onSuccess { promise.resolve(it) }
+            .onSuccess {
+                Log.d(DIAGNOSTICS_TAG, it)
+                promise.resolve(it)
+            }
             .onFailure { promise.reject("COSTS_FAILED", it.message, it) }
     }
 
@@ -52,13 +57,26 @@ class TriggerEngineModule(
             val rules = store.loadRules()
             val registry = TriggerRegistry(context).apply { reconcile(rules) }
 
+            // `JSONArray(Collection)` est obligatoire ici : passer directement
+            // une List Kotlin à `JSONObject.put` produirait, avec l'org.json
+            // d'Android, la *chaîne* "[datetime]" au lieu d'un tableau JSON —
+            // le JavaScript recevrait alors une chaîne là où il attend un
+            // tableau, et l'erreur ne surviendrait qu'à l'exécution.
             JSONObject()
-                .put("activeTriggerTypes", registry.activeTypeNames())
+                .put("activeTriggerTypes", JSONArray(registry.activeTypeNames()))
                 .put("ruleCount", rules.size)
                 .put("lastSignalAt", store.lastSignals())
                 .toString()
         }
-            .onSuccess { promise.resolve(it) }
+            .onSuccess {
+                Log.d(DIAGNOSTICS_TAG, it)
+                promise.resolve(it)
+            }
             .onFailure { promise.reject("DIAGNOSTICS_FAILED", it.message, it) }
+    }
+
+    private companion object {
+        /** Étiquette de journalisation : `adb logcat -s SharpReminderEngine`. */
+        const val DIAGNOSTICS_TAG = "SharpReminderEngine"
     }
 }

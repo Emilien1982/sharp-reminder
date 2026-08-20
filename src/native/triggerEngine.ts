@@ -1,18 +1,26 @@
-import NativeTriggerEngine from '@/native/NativeTriggerEngine';
 import type {
   FiredEvent,
   RuleSnapshot,
   TriggerEngineDiagnostics,
 } from '@/domain/triggers/snapshot';
 import type { TriggerCost, TriggerType } from '@/domain/triggers/types';
+import NativeTriggerEngine from '@/native/NativeTriggerEngine';
+import {
+  NativePayloadError,
+  parseJsonArray,
+  parseJsonObject,
+  requireNumber,
+  requireObject,
+  requireStringArray,
+} from '@/native/parsing';
 
 /**
  * Enveloppe typée autour du module natif.
  *
- * Le module natif échange du JSON brut (voir la justification dans
- * `NativeTriggerEngine.ts`). Cette couche est le seul endroit du projet où ce
- * JSON est analysé : le reste de l'application ne manipule que des objets
- * typés.
+ * Seul endroit du projet où le JSON échangé avec le natif est analysé, et seul
+ * endroit où sa forme est vérifiée. Le reste de l'application ne manipule que
+ * des objets typés, et toute malformation est signalée ici avec le nom du
+ * champ fautif plutôt que de provoquer une erreur obscure plus loin.
  */
 
 export async function syncRules(snapshot: RuleSnapshot[]): Promise<void> {
@@ -23,7 +31,22 @@ export async function getTriggerCosts(): Promise<
   Partial<Record<TriggerType, TriggerCost>>
 > {
   const raw = await NativeTriggerEngine.getTriggerCosts();
-  return JSON.parse(raw) as Partial<Record<TriggerType, TriggerCost>>;
+  const parsed = parseJsonObject('getTriggerCosts', raw);
+
+  const costs: Partial<Record<TriggerType, TriggerCost>> = {};
+  for (const [type, cost] of Object.entries(parsed)) {
+    if (cost !== 'light' && cost !== 'heavy') {
+      throw new NativePayloadError(
+        'getTriggerCosts',
+        type,
+        '"light" ou "heavy"',
+        cost,
+      );
+    }
+    costs[type as TriggerType] = cost;
+  }
+
+  return costs;
 }
 
 /**
@@ -32,10 +55,49 @@ export async function getTriggerCosts(): Promise<
  */
 export async function drainFiredEvents(): Promise<FiredEvent[]> {
   const raw = await NativeTriggerEngine.drainFiredEvents();
-  return JSON.parse(raw) as FiredEvent[];
+  const parsed = parseJsonArray('drainFiredEvents', raw);
+
+  return parsed.map((item, index) => {
+    if (typeof item !== 'object' || item === null) {
+      throw new NativePayloadError(
+        'drainFiredEvents',
+        `[${index}]`,
+        'un objet',
+        item,
+      );
+    }
+
+    const event = item as Record<string, unknown>;
+    for (const field of ['reminderId', 'firedAt', 'triggeringConditionId']) {
+      if (typeof event[field] !== 'string') {
+        throw new NativePayloadError(
+          'drainFiredEvents',
+          `[${index}].${field}`,
+          'une chaîne',
+          event[field],
+        );
+      }
+    }
+
+    return event as unknown as FiredEvent;
+  });
 }
 
 export async function getDiagnostics(): Promise<TriggerEngineDiagnostics> {
   const raw = await NativeTriggerEngine.getDiagnostics();
-  return JSON.parse(raw) as TriggerEngineDiagnostics;
+  const parsed = parseJsonObject('getDiagnostics', raw);
+
+  return {
+    activeTriggerTypes: requireStringArray(
+      'getDiagnostics',
+      parsed,
+      'activeTriggerTypes',
+    ) as TriggerType[],
+    ruleCount: requireNumber('getDiagnostics', parsed, 'ruleCount'),
+    lastSignalAt: requireObject(
+      'getDiagnostics',
+      parsed,
+      'lastSignalAt',
+    ) as TriggerEngineDiagnostics['lastSignalAt'],
+  };
 }
