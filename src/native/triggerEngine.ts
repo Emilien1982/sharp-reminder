@@ -9,6 +9,7 @@ import {
   NativePayloadError,
   parseJsonArray,
   parseJsonObject,
+  requireBoolean,
   requireNumber,
   requireObject,
   requireStringArray,
@@ -99,5 +100,10 @@ export async function getDiagnostics(): Promise<TriggerEngineDiagnostics> {
       parsed,
       'lastSignalAt',
     ) as TriggerEngineDiagnostics['lastSignalAt'],
+    notificationsAuthorized: requireBoolean(
+      'getDiagnostics',
+      parsed,
+      'notificationsAuthorized',
+    ),
   };
 }

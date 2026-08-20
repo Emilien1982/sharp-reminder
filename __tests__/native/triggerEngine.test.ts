@@ -12,13 +12,14 @@ const mocked = NativeTriggerEngine as jest.Mocked<typeof NativeTriggerEngine>;
 describe('getDiagnostics', () => {
   it('analyse une réponse bien formée', async () => {
     mocked.getDiagnostics.mockResolvedValueOnce(
-      '{"activeTriggerTypes":["datetime"],"ruleCount":2,"lastSignalAt":{"datetime":"2026-08-20T12:00:00Z"}}',
+      '{"activeTriggerTypes":["datetime"],"ruleCount":2,"lastSignalAt":{"datetime":"2026-08-20T12:00:00Z"},"notificationsAuthorized":true}',
     );
 
     await expect(getDiagnostics()).resolves.toEqual({
       activeTriggerTypes: ['datetime'],
       ruleCount: 2,
       lastSignalAt: { datetime: '2026-08-20T12:00:00Z' },
+      notificationsAuthorized: true,
     });
   });
 
@@ -27,7 +28,7 @@ describe('getDiagnostics', () => {
     // Kotlin en chaîne. La chaîne possède un `length`, si bien qu'une
     // vérification naïve la laissait passer avant d'échouer sur `.join()`.
     mocked.getDiagnostics.mockResolvedValueOnce(
-      '{"activeTriggerTypes":"[datetime]","ruleCount":1,"lastSignalAt":{}}',
+      '{"activeTriggerTypes":"[datetime]","ruleCount":1,"lastSignalAt":{},"notificationsAuthorized":true}',
     );
 
     await expect(getDiagnostics()).rejects.toThrow(
@@ -37,11 +38,23 @@ describe('getDiagnostics', () => {
 
   it('rejette un compteur manquant', async () => {
     mocked.getDiagnostics.mockResolvedValueOnce(
-      '{"activeTriggerTypes":[],"lastSignalAt":{}}',
+      '{"activeTriggerTypes":[],"lastSignalAt":{},"notificationsAuthorized":true}',
     );
 
     await expect(getDiagnostics()).rejects.toThrow(
       /"ruleCount" devrait être un nombre/,
+    );
+  });
+
+  it('rejette une autorisation de notification manquante', async () => {
+    // Ce champ signale le seul mode de défaillance totalement muet de
+    // l'application : les rappels se déclenchent, rien ne s'affiche.
+    mocked.getDiagnostics.mockResolvedValueOnce(
+      '{"activeTriggerTypes":[],"ruleCount":0,"lastSignalAt":{}}',
+    );
+
+    await expect(getDiagnostics()).rejects.toThrow(
+      /"notificationsAuthorized" devrait être un booléen/,
     );
   });
 

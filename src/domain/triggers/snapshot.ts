@@ -35,6 +35,15 @@ export interface TriggerEngineDiagnostics {
   ruleCount: number;
   /** Dernier signal reçu par type, ISO 8601. */
   lastSignalAt: Partial<Record<TriggerType, string>>;
+  /**
+   * L'utilisateur a-t-il autorisé les notifications ?
+   *
+   * Sans cette information, un refus rend l'application totalement muette
+   * sans le moindre indice : les rappels se déclenchent, le moteur fonctionne,
+   * et rien ne s'affiche. C'est le mode de défaillance le plus trompeur de
+   * cette application, il doit être visible à l'écran.
+   */
+  notificationsAuthorized: boolean;
 }
 
 /**

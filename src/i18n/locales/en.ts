@@ -24,6 +24,7 @@ export const en: TranslationResources = {
     engineState: 'Engine: {{count}} rule(s), active listeners: {{types}}',
     noActiveListener: 'none',
     notificationsDenied: 'Notifications denied — the reminder will not appear.',
+    notificationsBlocked: 'Notifications blocked — no reminder will appear.',
   },
   triggers: {
     datetime: 'Date and time',

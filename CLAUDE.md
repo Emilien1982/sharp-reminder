@@ -75,6 +75,23 @@ Elles sont structurelles, pas contournables :
 Sur iOS, Wi-Fi et Bluetooth sont donc *best-effort* : réévalués au réveil de
 l'app. Cette limite doit être visible dans l'interface, pas masquée.
 
+### Le déclencheur date/heure diffère volontairement entre les deux plateformes
+
+Ce n'est pas une incohérence, c'est l'usage du meilleur outil de chaque système :
+
+- **Android** réveille l'application via `AlarmManager.setExactAndAllowWhileIdle`,
+  qui évalue puis notifie. Nécessaire, car rien d'autre ne permet de vérifier
+  les autres conditions d'une règle combinée.
+- **iOS** confie la notification au système via `UNCalendarNotificationTrigger`.
+  Elle est délivrée à l'heure dite sans réveiller la moindre ligne de code,
+  application tuée — plus fiable que tout ce qu'on pourrait bâtir.
+
+Conséquence : une règle en **ET** combinant une date et un autre signal ne peut
+pas être confiée au système iOS, qui notifierait sans vérifier le reste. Ces
+règles sont évaluées au retour au premier plan. `RuleSnapshotStore` marque les
+règles confiées au système (`osScheduledRuleIds`) afin que la réévaluation
+suivante ne publie pas une seconde notification pour un rappel déjà délivré.
+
 ## Hors périmètre V1
 
 NFC, recherche de lieux par enseigne, météo, cycle lunaire, appel entrant, son

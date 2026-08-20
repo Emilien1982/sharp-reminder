@@ -11,8 +11,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"__tests__/**/*.ts\" \"*.js\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"__tests__/**/*.ts\" \"*.js\"",
     "test": "jest",
-    "test:android": "cd android && ./gradlew test",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "test:android": "cd android && ./gradlew :app:testDebugUnitTest",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "test:ios": "cd ios && xcodebuild test -workspace SharpReminder.xcworkspace -scheme SharpReminder -destination \"platform=iOS Simulator,name=iPhone 17 Pro\" -only-testing:SharpReminderTests",
+    "test:native": "npm run test:android && npm run test:ios"
   },
   "dependencies": {
     "@op-engineering/op-sqlite": "^18.1.1",

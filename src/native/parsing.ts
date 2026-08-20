@@ -102,6 +102,20 @@ export function requireNumber(
   return value;
 }
 
+export function requireBoolean(
+  source: string,
+  container: Record<string, unknown>,
+  field: string,
+): boolean {
+  const value = container[field];
+
+  if (typeof value !== 'boolean') {
+    throw new NativePayloadError(source, field, 'un booléen', value);
+  }
+
+  return value;
+}
+
 export function requireObject(
   source: string,
   container: Record<string, unknown>,

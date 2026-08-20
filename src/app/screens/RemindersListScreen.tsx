@@ -164,6 +164,12 @@ export function RemindersListScreen(): React.JSX.Element {
           </Text>
         </Pressable>
 
+        {diagnostics !== null && !diagnostics.notificationsAuthorized && (
+          <Text style={styles.devWarning}>
+            {t('devPanel.notificationsBlocked')}
+          </Text>
+        )}
+
         {diagnostics !== null && (
           <Text style={styles.devState}>
             {t('devPanel.engineState', {
@@ -243,6 +249,13 @@ const styles = StyleSheet.create({
   },
   devButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '500' },
   devState: { fontSize: 12, opacity: 0.7, marginTop: 4 },
+  devWarning: {
+    fontSize: 13,
+    color: '#a4302a',
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 2,
+  },
   row: {
     paddingHorizontal: 16,
     paddingVertical: 14,

@@ -36,7 +36,8 @@ jest.mock('@/native/NativeTriggerEngine', () => ({
     getTriggerCosts: jest.fn(async () => '{"datetime":"light"}'),
     drainFiredEvents: jest.fn(async () => '[]'),
     getDiagnostics: jest.fn(
-      async () => '{"activeTriggerTypes":[],"ruleCount":0,"lastSignalAt":{}}',
+      async () =>
+        '{"activeTriggerTypes":[],"ruleCount":0,"lastSignalAt":{},"notificationsAuthorized":true}',
     ),
   },
 }));

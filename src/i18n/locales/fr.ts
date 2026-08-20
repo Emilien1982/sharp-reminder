@@ -30,6 +30,8 @@ export const fr = {
     noActiveListener: 'aucune',
     notificationsDenied:
       'Notifications refusées — le rappel ne s’affichera pas.',
+    notificationsBlocked:
+      'Notifications bloquées — aucun rappel ne s’affichera.',
   },
   triggers: {
     datetime: 'Date et heure',

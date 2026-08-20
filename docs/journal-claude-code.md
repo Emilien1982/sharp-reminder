@@ -191,3 +191,71 @@ npm run verify && echo "✅" || echo "❌"
 *Leçon* : quand Claude annonce qu'une vérification passe, la question utile est
 « sur quoi te fondes-tu ? ». Un `grep` sur une sortie n'est pas une preuve ;
 un code de sortie en est une.
+
+### Le bug le plus grave : un rappel qui ne sonne pas
+
+Sur iOS, tout paraissait fonctionner. La règle enregistrée, l'interface
+affichant « Moteur : 1 règle, écoutes actives : datetime », aucune erreur,
+aucun log. Et la notification n'arrivait jamais.
+
+Cause : dans `syncRules`, les notifications étaient programmées **avant** la
+demande d'autorisation, et `UNUserNotificationCenter.add()` échoue en silence
+tant qu'elle n'est pas accordée. Deux lignes dans le mauvais ordre.
+
+Trois corrections, pas une — c'est le réflexe à demander systématiquement :
+
+1. **Le défaut** : l'autorisation précède désormais la programmation.
+2. **La visibilité** : `notificationsAuthorized` remonte dans le diagnostic sur
+   les deux plateformes, et l'écran affiche un avertissement rouge. Le mode de
+   défaillance muet est devenu bruyant.
+3. **La régression** : un test rejette ce champ s'il disparaît du contrat.
+
+**Aucune vérification automatique ne pouvait l'attraper.** Ni le typage, ni le
+lint, ni les 49 tests JS, ni JUnit, ni les 26 cas partagés. La logique était
+juste, le contrat respecté, les trois implémentations d'accord. Seul le fait de
+créer un vrai rappel, tuer l'application et regarder l'écran l'a révélé.
+
+C'est la justification concrète de la porte de validation sur appareil réel que
+l'utilisateur a imposée en approuvant le plan.
+
+### Quand la vérification elle-même est fausse
+
+Le principe « vérifie l'état, pas le log » a été appliqué correctement, mais
+avec de mauvais instruments — trois fois :
+
+| Vérification | Verdict | Réalité |
+|---|---|---|
+| `simctl get_app_container com.sharpreminder` | « app absente » | Mauvais identifiant : iOS utilise `org.reactjs.native.example.SharpReminder` |
+| `nm` sur le binaire iOS | « module natif absent » | Les classes ObjC ne s'inspectent pas ainsi |
+| `strings` sur une classe Java | « champ absent » | Les chaînes d'un `.class` sont en UTF-8 modifié — il fallait `javap` |
+
+Dans les trois cas, le code était bon et la mesure fausse. La règle complète
+n'est donc pas « vérifie l'état » mais : **vérifie l'état, puis demande-toi si
+l'instrument mesure bien ce que tu crois.** Ici, la preuve décisive a chaque
+fois été la plus directe — une capture d'écran montrant l'application faire ce
+qu'on attend d'elle.
+
+Corollaire pratique : `exit 0` n'est pas non plus une preuve.
+`react-native run-ios` a renvoyé `0` sur un `xcodebuild` en erreur 65.
+
+### Le mode bare a un coût, désormais chiffré
+
+Trois échecs de compilation iOS, trois causes distinctes : chemins de groupe
+Xcode erronés, ordre des `#import` dans le fichier Objective-C++, nom de
+produit vide pour la cible de test. Aucun n'était un défaut de logique — tous
+relevaient de la plomberie que le mode *bare* laisse à la charge du
+développeur, et chacun a coûté un cycle de compilation complet.
+
+C'est le prix assumé du contrôle total. La contrepartie est réelle : chaque
+fichier du pont Swift ↔ React Native est lisible et modifiable.
+
+### Fonctionnalité Claude Code introduite ici
+
+`/verif` accepte désormais une portée (`js`, `android`, `ios`, `tout`) et
+embarque les leçons ci-dessus sous forme de règles : ne pas filtrer les
+sorties, vérifier l'existence des artefacts, lire les rapports XML plutôt que
+les messages de fin, utiliser `javap` et non `strings`.
+
+C'est le bon moment pour écrire une commande custom : **quand le motif
+répétitif existe réellement.** L'écrire en phase 1, comme le plan l'envisageait
+pour `/nouveau-trigger`, aurait automatisé un motif encore inconnu.

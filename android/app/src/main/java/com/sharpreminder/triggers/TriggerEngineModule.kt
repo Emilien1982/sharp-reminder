@@ -3,6 +3,7 @@ package com.sharpreminder.triggers
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
 import com.facebook.react.module.annotations.ReactModule
 import org.json.JSONArray
 import org.json.JSONObject
@@ -66,6 +67,12 @@ class TriggerEngineModule(
                 .put("activeTriggerTypes", JSONArray(registry.activeTypeNames()))
                 .put("ruleCount", rules.size)
                 .put("lastSignalAt", store.lastSignals())
+                // Sans cette information, un refus de notification rend
+                // l'application totalement muette sans le moindre indice.
+                .put(
+                    "notificationsAuthorized",
+                    NotificationManagerCompat.from(context).areNotificationsEnabled(),
+                )
                 .toString()
         }
             .onSuccess {
