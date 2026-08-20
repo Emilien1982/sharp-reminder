@@ -1,13 +1,13 @@
-import type { DB, Scalar } from '@op-engineering/op-sqlite';
+import type { DB } from '@op-engineering/op-sqlite';
 
 import { getDatabase } from '@/data/database';
+import { rowToReminder, serialiseConditions } from '@/data/reminderMapping';
 import { newId } from '@/domain/id';
 import type {
   Reminder,
   ReminderDraft,
   ReminderPatch,
 } from '@/domain/reminders/types';
-import type { TriggerCondition } from '@/domain/triggers/types';
 
 /**
  * Accès aux rappels.
@@ -29,62 +29,6 @@ export interface ReminderRepository {
   markFired(id: string, firedAt: string): Promise<void>;
 }
 
-type ReminderRow = Record<string, Scalar>;
-
-function requireString(row: ReminderRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new Error(
-      `Colonne "${column}" invalide : chaîne attendue, reçu ${typeof value}.`,
-    );
-  }
-  return value;
-}
-
-function optionalString(row: ReminderRow, column: string): string | null {
-  const value = row[column];
-  return typeof value === 'string' ? value : null;
-}
-
-function parseConditions(raw: string): TriggerCondition[] {
-  const parsed: unknown = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    throw new Error('Colonne "conditions" invalide : tableau JSON attendu.');
-  }
-  // Le contenu provient exclusivement de `serialiseConditions`, jamais d'une
-  // source externe : une validation champ par champ serait redondante en V1.
-  // Elle deviendra nécessaire le jour où l'import de sauvegarde existera.
-  return parsed as TriggerCondition[];
-}
-
-function toDomain(row: ReminderRow): Reminder {
-  const combinator = requireString(row, 'combinator');
-  const afterFire = requireString(row, 'after_fire');
-
-  if (combinator !== 'AND' && combinator !== 'OR') {
-    throw new Error(`Combinateur inconnu en base : "${combinator}".`);
-  }
-  if (afterFire !== 'delete' && afterFire !== 'keep') {
-    throw new Error(`Comportement post-déclenchement inconnu : "${afterFire}".`);
-  }
-
-  return {
-    id: requireString(row, 'id'),
-    text: requireString(row, 'text'),
-    enabled: row.enabled === 1,
-    combinator,
-    conditions: parseConditions(requireString(row, 'conditions')),
-    afterFire,
-    createdAt: requireString(row, 'created_at'),
-    updatedAt: requireString(row, 'updated_at'),
-    lastFiredAt: optionalString(row, 'last_fired_at'),
-  };
-}
-
-function serialiseConditions(conditions: TriggerCondition[]): string {
-  return JSON.stringify(conditions);
-}
-
 const SELECT_COLUMNS = `id, text, enabled, combinator, conditions, after_fire,
                         created_at, updated_at, last_fired_at`;
 
@@ -95,7 +39,7 @@ export function createReminderRepository(db: DB): ReminderRepository {
       [id],
     );
     const row = result.rows[0];
-    return row ? toDomain(row) : null;
+    return row ? rowToReminder(row) : null;
   }
 
   async function requireReminder(id: string): Promise<Reminder> {
@@ -132,7 +76,7 @@ export function createReminderRepository(db: DB): ReminderRepository {
       const result = await db.execute(
         `SELECT ${SELECT_COLUMNS} FROM reminders ORDER BY created_at DESC;`,
       );
-      return result.rows.map(toDomain);
+      return result.rows.map(rowToReminder);
     },
 
     async listEnabled(): Promise<Reminder[]> {
@@ -140,7 +84,7 @@ export function createReminderRepository(db: DB): ReminderRepository {
         `SELECT ${SELECT_COLUMNS} FROM reminders
          WHERE enabled = 1 ORDER BY created_at DESC;`,
       );
-      return result.rows.map(toDomain);
+      return result.rows.map(rowToReminder);
     },
 
     get,
