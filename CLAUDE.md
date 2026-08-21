@@ -7,11 +7,39 @@ AND ou OR. 100 % local, aucun backend, aucune télémétrie.
 ## Commandes
 
 ```bash
-npm run verify        # typecheck + lint + format + tests — à lancer avant tout commit
+npm run verify        # typecheck + lint + format + Jest — avant tout commit
+npm run test:native   # JUnit (Kotlin) + XCTest (Swift)
 npm run android       # build et lance sur l'appareil branché
-npm test              # Jest seul
-cd android && ./gradlew assembleDebug   # build Android sans Metro
+npm run ios           # build et lance sur le simulateur
 ```
+
+Après tout ajout de fichier natif iOS (nouveau déclencheur, par exemple) :
+
+```bash
+cd ios && bundle exec ruby scripts/sync-xcode-project.rb
+```
+
+Le projet iOS référence ses fichiers explicitement : un fichier Swift non
+déclaré n'est pas compilé, et un chemin erroné ne se voit qu'après plusieurs
+minutes de build. Le script est idempotent et vérifie que chaque source pointe
+vers un fichier existant.
+
+## Environnement de test
+
+| | |
+|---|---|
+| Android | Galaxy S21 (`SM-G991B`), Android 15 / API 35, arm64, branché en USB |
+| iOS | Simulateur iPhone 17 Pro, iOS 26.5 |
+| Durée de build | Android ≈ 3 min ; iOS ≈ 10 min à froid, ≈ 2 min ensuite |
+| Outillage | Tout en arm64 natif : JDK 17 (`/opt/homebrew/opt/openjdk@17`), Node, CocoaPods |
+
+L'écran du téléphone Android se verrouille vite : une capture d'écran prise
+pendant qu'il est verrouillé ne montre pas l'application, et l'écran cesse de
+se rendre — ce n'est pas une panne.
+
+**Le panneau de test orange de l'écran de liste est temporaire.** Il n'existe
+que pour valider la chaîne complète avant que l'écran de création réel existe,
+et doit disparaître en phase 3.
 
 ## Architecture
 
