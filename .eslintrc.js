@@ -6,6 +6,13 @@ module.exports = {
     // volontairement non attendue (dans un useEffect, par exemple). Interdire
     // la forme pousserait à écrire du code moins clair, pas plus sûr.
     'no-void': ['warn', { allowAsStatement: true }],
+    // React Navigation impose de fournir `headerLeft` et `headerRight` sous
+    // forme de fonction rendue : il n'existe aucune écriture sans composant
+    // créé dans une prop. `allowAsProps` est l'option prévue par la règle
+    // elle-même pour ce cas — et non un contournement : le danger visé
+    // (remontage d'un sous-arbre porteur d'état) ne concerne pas des boutons
+    // d'en-tête sans état.
+    'react/no-unstable-nested-components': ['warn', { allowAsProps: true }],
   },
   overrides: [
     {
