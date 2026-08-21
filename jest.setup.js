@@ -41,3 +41,15 @@ jest.mock('@/native/NativeTriggerEngine', () => ({
     ),
   },
 }));
+
+// Le sélecteur date/heure est un module natif : Jest ne peut pas le charger.
+// La doublure rend le composant inerte et neutralise l'API impérative
+// Android, suffisant pour les tests de logique pure de cette base.
+jest.mock('@react-native-community/datetimepicker', () => ({
+  __esModule: true,
+  default: () => null,
+  DateTimePickerAndroid: {
+    open: jest.fn(),
+    dismiss: jest.fn(async () => true),
+  },
+}));
