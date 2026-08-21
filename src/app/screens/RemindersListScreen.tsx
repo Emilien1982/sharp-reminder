@@ -1,58 +1,53 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  PermissionsAndroid,
-  Platform,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 
+import { HeaderButton } from '@/app/components/HeaderButton';
+import { formatDateTime } from '@/app/formatting';
+import type { RootStackParamList } from '@/app/navigation/routes';
 import { getReminderRepository } from '@/data/reminderRepository';
-import { newId } from '@/domain/id';
 import {
-  createReminder,
   deleteReminder,
+  duplicateReminder,
+  updateReminder,
 } from '@/domain/reminders/reminderService';
 import type { Reminder } from '@/domain/reminders/types';
 import type { TriggerEngineDiagnostics } from '@/domain/triggers/snapshot';
+import type { TriggerCondition } from '@/domain/triggers/types';
+import { assertNeverCondition } from '@/domain/triggers/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { getDiagnostics } from '@/native/triggerEngine';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'RemindersList'>;
+
 /**
- * Demande la permission de notification.
+ * Normalise une cause de rejet en message affichable.
  *
- * Depuis Android 13, une notification publiée sans cette permission est
- * silencieusement ignorée : le rappel se déclenche mais reste invisible. On la
- * demande donc au moment de créer un rappel, conformément au principe de
- * permission contextuelle (§4 du brief).
+ * `setError` attend une chaîne : lui passer directement un `Error` le ferait
+ * rendre tel quel dans un `<Text>`, ce que React refuse — l'écran planterait
+ * au lieu de montrer la panne qu'il est censé signaler.
  */
-async function ensureNotificationPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android' || Platform.Version < 33) {
-    return true;
-  }
-
-  const result = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-  );
-  return result === PermissionsAndroid.RESULTS.GRANTED;
+function toMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
-function formatCondition(reminder: Reminder): string {
-  return reminder.conditions
-    .map(condition =>
-      condition.type === 'datetime'
-        ? new Date(condition.at).toLocaleString()
-        : condition.type,
-    )
-    .join(reminder.combinator === 'AND' ? ' ET ' : ' OU ');
-}
-
-export function RemindersListScreen(): React.JSX.Element {
-  const { t } = useTranslation();
+export function RemindersListScreen({ navigation }: Props): React.JSX.Element {
+  const { t, i18n } = useTranslation();
+  // La barre de navigation système recouvre le bas de l'écran : sans cette
+  // marge, le pied de page de diagnostic passe dessous et devient illisible.
+  const insets = useSafeAreaInsets();
   const [reminders, setReminders] = useState<Reminder[] | null>(null);
   const [diagnostics, setDiagnostics] =
     useState<TriggerEngineDiagnostics | null>(null);
@@ -66,38 +61,64 @@ export function RemindersListScreen(): React.JSX.Element {
     } catch (cause) {
       // Les erreurs sont affichées plutôt que masquées : sans backend ni
       // télémétrie (§8 du brief), l'écran est le seul canal de diagnostic.
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(toMessage(cause));
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Rechargé à chaque retour sur l'écran, et pas seulement au montage : sinon
+  // un rappel créé ou modifié dans l'éditeur ne s'afficherait qu'après un
+  // tirer-pour-rafraîchir.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
-  const createTestReminder = useCallback(
-    async (minutesFromNow: number) => {
-      try {
-        const granted = await ensureNotificationPermission();
-        if (!granted) {
-          Alert.alert(t('devPanel.notificationsDenied'));
-        }
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderButton
+          label="＋"
+          glyph
+          accessibilityLabel={t('reminders.add')}
+          onPress={() => navigation.navigate('ReminderEditor')}
+        />
+      ),
+    });
+  }, [navigation, t]);
 
-        const at = new Date(Date.now() + minutesFromNow * 60_000);
-
-        await createReminder({
-          text: `Test ${at.toLocaleTimeString()}`,
-          enabled: true,
-          combinator: 'OR',
-          conditions: [{ id: newId(), type: 'datetime', at: at.toISOString() }],
-          afterFire: 'keep',
-        });
-
-        await load();
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
+  /**
+   * Résumé d'une condition sur une ligne.
+   *
+   * Deuxième point d'extension des phases 4 à 6, avec `ConditionEditor` :
+   * ajouter un type de déclencheur fera échouer la compilation ici.
+   */
+  const describe = useCallback(
+    (condition: TriggerCondition): string => {
+      switch (condition.type) {
+        case 'datetime':
+          return formatDateTime(condition.at, i18n.language);
+        case 'wifi':
+          return `${t('triggers.wifi')} · ${condition.ssid}`;
+        case 'bluetooth':
+          return `${t('triggers.bluetooth')} · ${condition.deviceName}`;
+        case 'location':
+          return t('triggers.location');
+        default:
+          return assertNeverCondition(condition);
       }
     },
-    [load, t],
+    [i18n.language, t],
+  );
+
+  const summarise = useCallback(
+    (reminder: Reminder): string => {
+      const separator = ` ${t(
+        `triggers.combinatorShort.${reminder.combinator}`,
+      )} `;
+      return reminder.conditions.map(describe).join(separator);
+    },
+    [describe, t],
   );
 
   const confirmDelete = useCallback(
@@ -108,12 +129,45 @@ export function RemindersListScreen(): React.JSX.Element {
           text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
-            void deleteReminder(reminder.id).then(load);
+            void deleteReminder(reminder.id)
+              .then(load)
+              .catch(cause => setError(toMessage(cause)));
           },
         },
       ]);
     },
     [load, t],
+  );
+
+  const showActions = useCallback(
+    (reminder: Reminder) => {
+      Alert.alert(t('reminders.actionsTitle'), reminder.text, [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.duplicate'),
+          onPress: () => {
+            void duplicateReminder(reminder.id)
+              .then(load)
+              .catch(cause => setError(toMessage(cause)));
+          },
+        },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => confirmDelete(reminder),
+        },
+      ]);
+    },
+    [confirmDelete, load, t],
+  );
+
+  const toggleEnabled = useCallback(
+    (reminder: Reminder, enabled: boolean) => {
+      void updateReminder(reminder.id, { enabled })
+        .then(load)
+        .catch(cause => setError(toMessage(cause)));
+    },
+    [load],
   );
 
   if (error !== null) {
@@ -135,53 +189,14 @@ export function RemindersListScreen(): React.JSX.Element {
   return (
     <View style={styles.screen}>
       {/*
-        Panneau temporaire : il n'existe que pour valider la chaîne complète
-        UI → SQLite → moteur natif → notification avant que l'écran de création
-        réel n'existe. Il sera retiré en phase 3.
+        Ce bandeau n'est pas décoratif. Des notifications refusées rendent
+        l'application totalement muette — les rappels se déclenchent, le moteur
+        tourne, et rien ne s'affiche. C'est le mode de défaillance le plus
+        trompeur du projet ; il doit rester visible en permanence.
       */}
-      <View style={styles.devPanel}>
-        <Text style={styles.devTitle}>{t('devPanel.title')}</Text>
-
-        <Pressable
-          style={styles.devButton}
-          onPress={() => {
-            void createTestReminder(1);
-          }}
-        >
-          <Text style={styles.devButtonText}>
-            {t('devPanel.createInOneMinute')}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.devButton}
-          onPress={() => {
-            void createTestReminder(2);
-          }}
-        >
-          <Text style={styles.devButtonText}>
-            {t('devPanel.createInTwoMinutes')}
-          </Text>
-        </Pressable>
-
-        {diagnostics !== null && !diagnostics.notificationsAuthorized && (
-          <Text style={styles.devWarning}>
-            {t('devPanel.notificationsBlocked')}
-          </Text>
-        )}
-
-        {diagnostics !== null && (
-          <Text style={styles.devState}>
-            {t('devPanel.engineState', {
-              count: diagnostics.ruleCount,
-              types:
-                diagnostics.activeTriggerTypes.length > 0
-                  ? diagnostics.activeTriggerTypes.join(', ')
-                  : t('devPanel.noActiveListener'),
-            })}
-          </Text>
-        )}
-      </View>
+      {diagnostics !== null && !diagnostics.notificationsAuthorized && (
+        <Text style={styles.blocked}>{t('notifications.blocked')}</Text>
+      )}
 
       {reminders.length === 0 ? (
         <View style={styles.centered}>
@@ -195,22 +210,57 @@ export function RemindersListScreen(): React.JSX.Element {
           onRefresh={load}
           refreshing={false}
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.row}
-              onLongPress={() => confirmDelete(item)}
-            >
-              <Text style={styles.rowText}>{item.text}</Text>
-              <Text style={styles.rowMeta}>{formatCondition(item)}</Text>
-              <Text style={styles.rowMeta}>
-                {item.lastFiredAt === null
-                  ? t('reminders.neverFired')
-                  : t('reminders.firedAt', {
-                      date: new Date(item.lastFiredAt).toLocaleString(),
-                    })}
-              </Text>
-            </Pressable>
+            <View style={styles.row}>
+              <Pressable
+                style={styles.rowMain}
+                accessibilityRole="button"
+                onPress={() =>
+                  navigation.navigate('ReminderEditor', { reminderId: item.id })
+                }
+                onLongPress={() => showActions(item)}
+              >
+                <Text style={[styles.rowText, !item.enabled && styles.faded]}>
+                  {item.text}
+                </Text>
+                <Text style={styles.rowMeta}>{summarise(item)}</Text>
+                <Text style={styles.rowMeta}>
+                  {item.enabled
+                    ? item.lastFiredAt === null
+                      ? t('reminders.neverFired')
+                      : t('reminders.firedAt', {
+                          date: formatDateTime(item.lastFiredAt, i18n.language),
+                        })
+                    : t('reminders.inactive')}
+                </Text>
+              </Pressable>
+
+              <Switch
+                value={item.enabled}
+                onValueChange={enabled => toggleEnabled(item, enabled)}
+              />
+            </View>
           )}
         />
+      )}
+
+      {/*
+        État réel du moteur natif. Conservé après le retrait du panneau de test
+        parce que c'est le seul moyen de constater qu'une écoute s'éteint quand
+        on désactive un rappel — une application sans backend ni télémétrie n'a
+        pas d'autre canal.
+      */}
+      {diagnostics !== null && (
+        <Text
+          style={[styles.engineState, { paddingBottom: insets.bottom + 8 }]}
+        >
+          {t('diagnostics.engineState', {
+            count: diagnostics.ruleCount,
+            types:
+              diagnostics.activeTriggerTypes.length > 0
+                ? diagnostics.activeTriggerTypes.join(', ')
+                : t('diagnostics.noActiveListener'),
+          })}
+        </Text>
       )}
     </View>
   );
@@ -227,41 +277,33 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, marginBottom: 6 },
   emptyHint: { fontSize: 14, opacity: 0.6 },
   error: { fontSize: 14, textAlign: 'center' },
-  devPanel: {
-    padding: 12,
-    backgroundColor: '#fff6e5',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e0c9a0',
-  },
-  devTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    opacity: 0.6,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  devButton: {
-    backgroundColor: '#2c6cb0',
-    borderRadius: 6,
-    paddingVertical: 10,
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  devButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '500' },
-  devState: { fontSize: 12, opacity: 0.7, marginTop: 4 },
-  devWarning: {
+  blocked: {
     fontSize: 13,
-    color: '#a4302a',
+    color: '#ffffff',
+    backgroundColor: '#a4302a',
     fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#d8d8d8',
   },
+  rowMain: { flex: 1 },
   rowText: { fontSize: 16, marginBottom: 4 },
+  faded: { opacity: 0.5 },
   rowMeta: { fontSize: 12, opacity: 0.6 },
+  engineState: {
+    fontSize: 11,
+    opacity: 0.5,
+    textAlign: 'center',
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e0e0e0',
+  },
 });

@@ -16,22 +16,47 @@ export const fr = {
   },
   reminders: {
     listTitle: 'Rappels',
+    add: 'Nouveau rappel',
     empty: 'Aucun rappel pour le moment.',
     emptyHint: 'Appuyez sur + pour en créer un.',
     neverFired: 'Jamais déclenché',
     firedAt: 'Déclenché le {{date}}',
     deleteConfirmTitle: 'Supprimer ce rappel ?',
+    actionsTitle: 'Que faire de ce rappel ?',
+    inactive: 'Désactivé',
   },
-  devPanel: {
-    title: 'Panneau de test (temporaire)',
-    createInTwoMinutes: 'Créer un rappel dans 2 minutes',
-    createInOneMinute: 'Créer un rappel dans 1 minute',
+  editor: {
+    createTitle: 'Nouveau rappel',
+    editTitle: 'Modifier le rappel',
+    textLabel: 'Texte du rappel',
+    textPlaceholder: 'Sortir les poubelles',
+    enabledLabel: 'Rappel actif',
+    enabledHint:
+      'Un rappel désactivé est conservé mais n’écoute plus rien, et n’use donc pas la batterie.',
+    conditionsTitle: 'Conditions',
+    addCondition: 'Ajouter une condition',
+    removeCondition: 'Retirer cette condition',
+    combinatorTitle: 'Déclencher quand…',
+    afterFireTitle: 'Une fois déclenché',
+    afterFire: {
+      delete: 'Supprimer le rappel',
+      keep: 'Le conserver',
+    },
+    changeDate: 'Date',
+    changeTime: 'Heure',
+    errors: {
+      textRequired: 'Indiquez le texte du rappel.',
+      conditionRequired: 'Ajoutez au moins une condition.',
+      dateTimeInPast: 'Cette date est déjà passée.',
+    },
+  },
+  notifications: {
+    blocked: 'Notifications bloquées — aucun rappel ne s’affichera.',
+    denied: 'Notifications refusées — le rappel ne s’affichera pas.',
+  },
+  diagnostics: {
     engineState: 'Moteur : {{count}} règle(s), écoutes actives : {{types}}',
     noActiveListener: 'aucune',
-    notificationsDenied:
-      'Notifications refusées — le rappel ne s’affichera pas.',
-    notificationsBlocked:
-      'Notifications bloquées — aucun rappel ne s’affichera.',
   },
   triggers: {
     datetime: 'Date et heure',
@@ -41,6 +66,11 @@ export const fr = {
     combinator: {
       AND: 'Toutes les conditions',
       OR: "N'importe quelle condition",
+    },
+    /** Séparateur employé pour résumer une règle sur une ligne. */
+    combinatorShort: {
+      AND: 'et',
+      OR: 'ou',
     },
     costWarning: {
       title: 'Déclencheur gourmand',

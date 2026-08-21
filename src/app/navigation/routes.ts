@@ -8,6 +8,12 @@
  */
 export type RootStackParamList = {
   RemindersList: undefined;
+  /**
+   * Éditeur de rappel. L'absence de `reminderId` signifie une création : c'est
+   * le même écran qui sert aux deux usages, puisqu'ils manipulent exactement
+   * les mêmes champs.
+   */
+  ReminderEditor: { reminderId?: string } | undefined;
 };
 
 declare global {
