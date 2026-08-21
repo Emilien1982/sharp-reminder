@@ -16,3 +16,4 @@ dossier avec le statut « Remplacée par 000X ».
 | [0001](0001-choix-du-framework.md) | React Native CLI plutôt que Expo, Flutter ou natif | Acceptée |
 | [0002](0002-moteur-de-triggers-natif.md) | Le moteur de déclencheurs vit dans le natif | Acceptée |
 | [0003](0003-stockage-local.md) | SQLite, conditions stockées en JSON | Acceptée |
+| [0004](0004-selecteur-date-heure.md) | Sélecteur date/heure natif plutôt que saisie texte | Acceptée |
