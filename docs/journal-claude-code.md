@@ -259,3 +259,84 @@ les messages de fin, utiliser `javap` et non `strings`.
 C'est le bon moment pour écrire une commande custom : **quand le motif
 répétitif existe réellement.** L'écrire en phase 1, comme le plan l'envisageait
 pour `/nouveau-trigger`, aurait automatisé un motif encore inconnu.
+
+---
+
+## Phase 3 — Écran de création et d'édition
+
+### Fonctionnalités Claude Code introduites
+
+| Outil | Ce qu'il a apporté |
+|---|---|
+| **Plan mode** (2ᵉ usage) | Deux décisions posées avant la première ligne : dépendance native pour le sélecteur, et périmètre CRUD complet plutôt que minimal. Le plan a aussi fait apparaître un conflit interne — voir « le plan avait tort » ci-dessous. |
+| **`/code-review`** | Lancée avant de taguer, comme la phase 1 l'avait prévu. Quatre défauts confirmés, dont deux que ni le typage, ni le lint, ni les 65 tests, ni les essais manuels sur les deux plateformes n'avaient attrapés. |
+| **Sous-agents** | Toujours pas utilisés. Le besoin ne s'est pas présenté : la phase 3 est du JavaScript partagé, sans revue croisée Kotlin ↔ Swift à mener. |
+
+### La revue de code a trouvé ce que l'appareil réel ne pouvait pas trouver
+
+Deux défauts confirmés méritent d'être retenus, parce qu'ils étaient
+**invisibles à l'usage normal** :
+
+1. `.catch(setError)` passait un objet `Error` à un état typé `string`, ensuite
+   rendu dans un `<Text>`. React refuse un objet comme enfant : l'écran aurait
+   planté au lieu d'afficher la panne qu'il était censé signaler. Le chemin
+   n'est emprunté que si SQLite échoue — jamais pendant un test manuel.
+2. Le chargement de l'éditeur lançait une async sans `.catch` : toute erreur
+   laissait un indicateur de chargement tourner indéfiniment, sans message.
+
+*Leçon* : les tests sur appareil réel couvrent le chemin nominal ; la revue de
+code couvre les chemins d'erreur, que personne ne déclenche à la main. Les deux
+sont nécessaires, aucun ne remplace l'autre.
+
+### Le plan avait tort, et l'a montré tout seul
+
+Le plan disait de retirer entièrement le panneau de test, en ne gardant que
+l'avertissement des notifications. Mais son propre paragraphe de vérification
+demandait de « désactiver un rappel et constater que l'écoute s'éteint » —
+impossible sans l'affichage de l'état du moteur. Le pied de page a donc été
+conservé, et `CLAUDE.md` corrigé pour dire *pourquoi* il n'est pas un résidu.
+
+*Leçon* : écrire la procédure de vérification **dans** le plan révèle les
+incohérences du plan avant qu'elles ne deviennent du code.
+
+### Deux fois piégé par l'instrument, pas par le code
+
+La phase 2 avait déjà consigné « vérifie l'état, puis demande-toi si
+l'instrument mesure bien ce que tu crois ». La phase 3 l'a confirmé deux fois :
+
+| Symptôme | Conclusion tentante | Réalité |
+|---|---|---|
+| `security find-generic-password` ne trouve pas la passphrase SSH | « le Trousseau n'a rien mémorisé » | macOS 26 range la passphrase dans le *data protection keychain*, invisible à l'ancienne CLI. Preuve correcte : `ssh -o BatchMode=yes`, qui échouerait s'il fallait saisir quoi que ce soit. |
+| Le correctif « date passée » reste sans effet à l'écran | « mon correctif est faux » | Bundle Metro périmé. Un `terminate` + `launch` a tranché en dix secondes. |
+
+*Leçon* : avant de corriger un correctif qui « ne marche pas », vérifier que
+c'est bien le nouveau code qui tourne.
+
+### Deux problèmes d'environnement, jamais de code
+
+`ANDROID_HOME` puis `LANG` manquaient dans le shell non interactif de Claude,
+alors que le terminal de l'utilisateur les avait — `~/.zshrc` n'est chargé que
+pour les shells interactifs. Le second cas était trompeur : CocoaPods a planté
+**dans son propre rapport d'erreur**, masquant complètement la cause.
+
+*Leçon* : un échec de build qui n'a aucun rapport avec le diff est presque
+toujours un problème d'environnement. Le chercher là avant de suspecter le code.
+
+### Le point d'extension, posé et vérifiable
+
+Deux `switch` sur `condition.type` sont fermés par `assertNeverCondition` :
+`ConditionEditor.tsx` et le résumé de `RemindersListScreen.tsx`. Ajouter le
+Wi-Fi en phase 4 fera échouer la compilation à ces deux endroits exactement,
+avec le nom du type manquant. C'est le contraire d'un écran silencieusement
+incomplet.
+
+### Encore inexploité
+
+- **Sous-agents** — la phase 4 (Wi-Fi Android puis iOS) offrira enfin la revue
+  croisée Kotlin ↔ Swift qui les justifie.
+- **Hooks** — `npm run verify` après édition. Aurait fait gagner les deux
+  allers-retours Prettier de cette phase.
+- **Worktrees** — phases 5-6.
+- **`/nouveau-trigger`** — le motif d'un déclencheur est désormais établi côté
+  natif *et* côté interface. C'est en phase 4 qu'il faudra l'écrire, une fois
+  le deuxième type réellement ajouté.

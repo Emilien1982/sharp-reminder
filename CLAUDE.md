@@ -37,9 +37,10 @@ L'écran du téléphone Android se verrouille vite : une capture d'écran prise
 pendant qu'il est verrouillé ne montre pas l'application, et l'écran cesse de
 se rendre — ce n'est pas une panne.
 
-**Le panneau de test orange de l'écran de liste est temporaire.** Il n'existe
-que pour valider la chaîne complète avant que l'écran de création réel existe,
-et doit disparaître en phase 3.
+L'écran de liste affiche en pied de page l'état réel du moteur natif (nombre
+de règles, écoutes actives). Ce n'est pas un reste du panneau de test retiré en
+phase 3 : sans backend ni télémétrie, c'est le seul moyen de constater qu'une
+écoute s'éteint quand on désactive un rappel.
 
 ## Architecture
 

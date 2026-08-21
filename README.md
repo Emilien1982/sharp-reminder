@@ -13,10 +13,14 @@ En développement. Voir `docs/journal-claude-code.md` pour l'avancement.
 
 | Déclencheur | Android | iOS |
 |---|---|---|
-| Date et heure | à venir | à venir |
+| Date et heure | ✅ | ✅ |
 | Géolocalisation | à venir | à venir |
 | Wi-Fi | à venir | à venir (best-effort, voir ci-dessous) |
 | Bluetooth | à venir | à venir (best-effort) |
+
+Les rappels se créent, se modifient, se dupliquent et s'activent depuis
+l'application. Les trois déclencheurs restants viendront s'ajouter à la liste
+de conditions existante, combinables en ET ou en OU.
 
 Sur iOS, les déclencheurs Wi-Fi et Bluetooth sont limités par le système : Apple
 n'autorise pas la surveillance de ces signaux en arrière-plan. Ils sont
