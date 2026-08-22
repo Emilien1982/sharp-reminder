@@ -111,6 +111,39 @@ relecture par petits morceaux (`git show <hash>`), puisque l'utilisateur n'écri
 pas le code mais doit pouvoir le juger. Un commit « Phase 1 » de 40 fichiers
 serait illisible et donc validé à l'aveugle.
 
+### Le défaut que six vérifications n'ont pas vu
+
+Signalé par l'utilisateur après la livraison : un rappel daté d'hier refusait
+d'être reprogrammé à aujourd'hui, l'application affirmant « cette date est déjà
+passée » devant une date qui, à l'écran, ne l'était pas.
+
+Cause : `minimumDate={new Date()}` sur le sélecteur iOS. Quand la valeur
+stockée est antérieure au minimum, `UIDatePicker` **remonte la valeur
+affichée** jusqu'au minimum — sans émettre le moindre événement. L'écran
+montrait le 22, l'état JavaScript était resté au 21. Et re-sélectionner le 22
+ne produisait aucun changement, puisque le sélecteur croyait déjà l'avoir.
+
+La preuve a été immédiate une fois la bonne question posée : lire la ligne
+SQLite dans le conteneur du simulateur. Base `2026-08-21T19:03Z`, écran
+`22 août`. Deux valeurs pour un même champ, la discussion était close.
+
+Ce qui rend ce défaut instructif, c'est **tout ce qui l'a laissé passer** : le
+typage, le lint, les 69 tests, la revue de code à effort élevé, et les essais
+manuels sur les deux plateformes — y compris sur cet écran précis. Aucun ne
+pouvait l'attraper, pour une raison unique : la vérité n'était pas dans le
+code. Elle était dans ce qu'une vue native décidait d'afficher, et rien en
+JavaScript n'en avait connaissance.
+
+*Leçon* : quand un composant natif reçoit une contrainte (`minimumDate`,
+`maxLength`, `keyboardType`…), il peut modifier ce qu'il **montre** sans en
+informer l'état qui le pilote. La règle sûre est qu'une seule couche décide :
+ici la validation, qui refuse explicitement et le dit, plutôt que le sélecteur,
+qui contournait en silence.
+
+*Corollaire pour la suite* : le seul test qui l'aurait attrapé aurait comparé
+la valeur affichée à la valeur stockée. C'est le genre de contrôle à réclamer
+sur tout écran d'édition adossé à un composant natif.
+
 ### Encore inexploité — à introduire au bon moment
 
 - **`/code-review`** — à lancer avant de taguer chaque phase.
@@ -329,6 +362,39 @@ Deux `switch` sur `condition.type` sont fermés par `assertNeverCondition` :
 Wi-Fi en phase 4 fera échouer la compilation à ces deux endroits exactement,
 avec le nom du type manquant. C'est le contraire d'un écran silencieusement
 incomplet.
+
+### Le défaut que six vérifications n'ont pas vu
+
+Signalé par l'utilisateur après la livraison : un rappel daté d'hier refusait
+d'être reprogrammé à aujourd'hui, l'application affirmant « cette date est déjà
+passée » devant une date qui, à l'écran, ne l'était pas.
+
+Cause : `minimumDate={new Date()}` sur le sélecteur iOS. Quand la valeur
+stockée est antérieure au minimum, `UIDatePicker` **remonte la valeur
+affichée** jusqu'au minimum — sans émettre le moindre événement. L'écran
+montrait le 22, l'état JavaScript était resté au 21. Et re-sélectionner le 22
+ne produisait aucun changement, puisque le sélecteur croyait déjà l'avoir.
+
+La preuve a été immédiate une fois la bonne question posée : lire la ligne
+SQLite dans le conteneur du simulateur. Base `2026-08-21T19:03Z`, écran
+`22 août`. Deux valeurs pour un même champ, la discussion était close.
+
+Ce qui rend ce défaut instructif, c'est **tout ce qui l'a laissé passer** : le
+typage, le lint, les 69 tests, la revue de code à effort élevé, et les essais
+manuels sur les deux plateformes — y compris sur cet écran précis. Aucun ne
+pouvait l'attraper, pour une raison unique : la vérité n'était pas dans le
+code. Elle était dans ce qu'une vue native décidait d'afficher, et rien en
+JavaScript n'en avait connaissance.
+
+*Leçon* : quand un composant natif reçoit une contrainte (`minimumDate`,
+`maxLength`, `keyboardType`…), il peut modifier ce qu'il **montre** sans en
+informer l'état qui le pilote. La règle sûre est qu'une seule couche décide :
+ici la validation, qui refuse explicitement et le dit, plutôt que le sélecteur,
+qui contournait en silence.
+
+*Corollaire pour la suite* : le seul test qui l'aurait attrapé aurait comparé
+la valeur affichée à la valeur stockée. C'est le genre de contrôle à réclamer
+sur tout écran d'édition adossé à un composant natif.
 
 ### Encore inexploité
 

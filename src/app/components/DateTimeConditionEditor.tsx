@@ -21,6 +21,17 @@ import type { DateTimeCondition } from '@/domain/triggers/types';
  *
  * Dans les deux cas, choisir une date ne doit pas écraser l'heure déjà réglée,
  * et inversement — d'où les fusions par partie ci-dessous.
+ *
+ * **Ne jamais remettre `minimumDate` ici.** Le sélecteur natif s'en sert pour
+ * remonter la valeur *affichée* jusqu'au minimum, sans émettre le moindre
+ * événement : l'écran montrait alors une date que l'état JavaScript n'avait
+ * pas, et re-sélectionner cette date ne produisait aucun changement, puisque
+ * le sélecteur croyait déjà l'avoir. Un rappel daté d'hier devenait
+ * impossible à reprogrammer, l'application affirmant « cette date est déjà
+ * passée » devant une date qui, à l'écran, ne l'était pas.
+ *
+ * L'interdiction d'une date passée appartient à `validateForm`, qui la dit
+ * explicitement au lieu de la contourner en silence.
  */
 
 interface Props {
@@ -61,9 +72,6 @@ export function DateTimeConditionEditor({
       DateTimePickerAndroid.open({
         value: new Date(condition.at),
         mode,
-        // Ne borne que le calendrier : borner l'heure empêcherait de régler
-        // une heure matinale sur un jour futur.
-        minimumDate: mode === 'date' ? new Date() : undefined,
         onValueChange: (_event, picked) => {
           const base = new Date(condition.at);
           emit(
@@ -114,7 +122,6 @@ export function DateTimeConditionEditor({
         mode="date"
         display="compact"
         locale={i18n.language}
-        minimumDate={new Date()}
         onValueChange={(_event, picked) =>
           emit(withDatePart(new Date(condition.at), picked))
         }
