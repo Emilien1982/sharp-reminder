@@ -27,6 +27,7 @@
     "react-i18next": "^17.0.11",
     "react-native": "0.86.2",
     "react-native-localize": "^3.7.0",
+    "react-native-maps": "^1.29.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.27.0"
   },

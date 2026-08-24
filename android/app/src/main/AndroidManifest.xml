@@ -21,6 +21,21 @@
     <!-- Réarmement des alarmes après un redémarrage du téléphone. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!--
+      Géorepérage. FINE et COARSE sont demandées ensemble : le système impose
+      de les présenter en une seule invite, et refuser la précision fine tout
+      en acceptant la grossière reste exploitable pour des zones de 150 m.
+
+      BACKGROUND_LOCATION est distincte et ne peut PAS être demandée dans la
+      même invite depuis Android 11 : elle exige un second passage, par les
+      réglages système. Sans elle, aucune zone n'est surveillée application
+      fermée — l'utilisateur doit donc en être averti à l'écran, pas le
+      découvrir en manquant un rappel.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
@@ -30,6 +45,14 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+
+      <!--
+        Clé Google Maps. La valeur n'est PAS dans ce fichier : Gradle la
+        substitue depuis android/local.properties, hors du dépôt public.
+      -->
+      <meta-data
+          android:name="com.google.android.geo.API_KEY"
+          android:value="${googleMapsApiKey}" />
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -49,6 +72,15 @@
       -->
       <receiver
           android:name="com.sharpreminder.triggers.datetime.AlarmReceiver"
+          android:exported="false" />
+
+      <!--
+        Réception des franchissements de zone. Non exporté : seuls les services
+        Google Play, via le PendingIntent qu'on leur a confié, doivent pouvoir
+        le réveiller.
+      -->
+      <receiver
+          android:name="com.sharpreminder.triggers.location.GeofenceReceiver"
           android:exported="false" />
 
       <!--

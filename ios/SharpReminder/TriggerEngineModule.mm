@@ -8,6 +8,12 @@
 // échoue sur un fichier — AppDelegate.swift — que l'on ne touche même pas.
 #import <React_RCTAppDelegate/RCTDefaultReactNativeFactoryDelegate.h>
 
+// Même raison : l'en-tête généré déclare `LocationMonitor`, qui adopte
+// `CLLocationManagerDelegate`. Sans CoreLocation importé au préalable, le
+// compilateur bute sur un protocole inconnu, dans un fichier Objective-C++ qui
+// ne parle pourtant jamais de localisation.
+#import <CoreLocation/CoreLocation.h>
+
 #import "SharpReminder-Swift.h"
 
 /**

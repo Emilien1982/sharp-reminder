@@ -72,6 +72,35 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+/**
+ * Clé de l'API Google Maps.
+ *
+ * Lue depuis `android/local.properties`, que .gitignore couvre : le dépôt est
+ * public, et une clé commitée y serait moissonnée en quelques heures. Aucun
+ * fichier versionné ne doit la contenir — le manifeste lui-même n'en reçoit
+ * qu'un substituant.
+ *
+ * Son absence n'empêche pas de compiler, pour qu'un contributeur sans clé
+ * puisse travailler sur le reste. Mais elle est signalée bruyamment : une carte
+ * grise sans explication est exactement le genre de panne muette que ce projet
+ * s'attache à rendre visible.
+ */
+def googleMapsApiKey = ""
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    def localProperties = new Properties()
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+    googleMapsApiKey = localProperties.getProperty("GOOGLE_MAPS_API_KEY", "")
+}
+if (googleMapsApiKey.isEmpty()) {
+    logger.warn("")
+    logger.warn("*********************************************************************")
+    logger.warn("GOOGLE_MAPS_API_KEY absente de android/local.properties.")
+    logger.warn("La carte s'affichera grise et vide. Voir la section Carte du README.")
+    logger.warn("*********************************************************************")
+    logger.warn("")
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -84,6 +113,10 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        // Le manifeste ne porte que le substituant : la valeur vient de
+        // local.properties, jamais du dépôt.
+        manifestPlaceholders = [googleMapsApiKey: googleMapsApiKey]
     }
     signingConfigs {
         debug {
@@ -126,6 +159,11 @@ dependencies {
 
     // Compatibilité des notifications et des alarmes selon la version d'Android
     implementation("androidx.core:core-ktx:1.13.1")
+
+    // Géorepérage. `GeofencingClient` vit dans les services Google Play : c'est
+    // la seule API Android capable de surveiller des zones sans maintenir le
+    // GPS allumé, donc la seule compatible avec l'exigence d'autonomie.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
