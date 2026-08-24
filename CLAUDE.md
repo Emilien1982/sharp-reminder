@@ -104,6 +104,21 @@ Elles sont structurelles, pas contournables :
 Sur iOS, Wi-Fi et Bluetooth sont donc *best-effort* : réévalués au réveil de
 l'app. Cette limite doit être visible dans l'interface, pas masquée.
 
+### Une condition est un état, le déclenchement est une transition
+
+Distinction structurante, et source d'erreur répétée : **les conditions
+décrivent le monde maintenant, jamais ce qui vient de se produire.**
+`direction: 'enter'` sur un lieu signifie « la zone est occupée », pas « je
+viens d'y entrer ». Le franchissement est reconstitué au niveau de la règle,
+par `shouldFire(précédent, courant)`.
+
+C'est ce qui rend le ET possible — deux événements ne coïncident jamais, deux
+états si — et ce qui permet d'exprimer « si je suis encore ici à 13h35 » comme
+`lieu(présent) ET date(13h35)`.
+
+Corollaire pour l'interface : tout libellé de condition doit décrire un état.
+Nommer ce champ « En arrivant » a fait croire à une limite qui n'existait pas.
+
 ### Le déclencheur date/heure diffère volontairement entre les deux plateformes
 
 Ce n'est pas une incohérence, c'est l'usage du meilleur outil de chaque système :

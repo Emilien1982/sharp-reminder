@@ -14,7 +14,7 @@ En développement. Voir `docs/journal-claude-code.md` pour l'avancement.
 | Déclencheur | Android | iOS |
 |---|---|---|
 | Date et heure | ✅ | ✅ |
-| Géolocalisation | à venir | à venir |
+| Géolocalisation | ✅ | ✅ |
 | Wi-Fi | à venir | à venir (best-effort, voir ci-dessous) |
 | Bluetooth | à venir | à venir (best-effort) |
 

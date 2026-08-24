@@ -406,3 +406,82 @@ sur tout écran d'édition adossé à un composant natif.
 - **`/nouveau-trigger`** — le motif d'un déclencheur est désormais établi côté
   natif *et* côté interface. C'est en phase 4 qu'il faudra l'écrire, une fois
   le deuxième type réellement ajouté.
+
+---
+
+## Phase 4 — Déclencheur de lieu
+
+### Ce qui distingue cette phase des précédentes
+
+Les trois premières phases ont livré du code qui marchait au premier essai
+utilisateur. Celle-ci a demandé **cinq allers-retours**, et presque tous les
+défauts venaient de moi. C'est la phase la plus instructive à ce titre.
+
+### Quatre défauts introduits par Claude, et ce qui les a révélés
+
+| Défaut | Ce qui l'a trouvé |
+|---|---|
+| `pod install` jamais relancé après l'ajout de la carte | L'utilisateur, sur iOS : « la création du trigger lieu lève des erreurs » |
+| `start()` effaçait l'état des zones à chaque évaluation, juste après le franchissement qu'il venait d'enregistrer | Ma propre relecture avant compilation |
+| Une réinitialisation de ligne de base avalait le déclenchement au lieu de notifier | La base SQLite du simulateur : règle passée à « satisfaite », absente des déclenchements |
+| Évaluer à chaque réponse de zone créait une **récursion infinie** | Le journal du simulateur : `startMonitoring → requestState → didDetermineState → evaluateAll → …` |
+
+Aucun n'était détectable par le typage, le lint ou les tests. Trois l'ont été
+en **lisant l'état réel** — base de données, journal système — plutôt que
+l'écran.
+
+*Leçon* : plus une phase touche au natif, plus la proportion de défauts
+invisibles aux vérifications automatiques augmente. En phase 1 elles suffisaient
+presque ; ici elles n'ont rien attrapé.
+
+### Le piège le plus coûteux : l'instrument qui ment, troisième récidive
+
+Après avoir corrigé le garde-fou de permission, j'ai vérifié dans le journal :
+zéro refus de Play Services. J'ai failli conclure à la réussite. Or **il n'y
+avait aucune règle en base** — l'utilisateur avait tout supprimé. Aucune
+tentative d'enregistrement n'avait eu lieu, et mon « zéro refus » ne mesurait
+rien.
+
+C'est la troisième fois du projet, après `security find-generic-password` et le
+bundle Metro périmé. Le contrôle positif — vérifier que la mesure porte sur
+quelque chose — n'est pas une précaution facultative.
+
+### Le modèle était juste, le vocabulaire était faux
+
+L'utilisateur a signalé une « erreur de design » : impossible d'exprimer « si je
+suis encore dans ce lieu à 13h35 ». Vérification faite sur les cas partagés,
+c'était **parfaitement exprimable** : `direction: 'enter'` est évalué comme
+« la zone est occupée », un état, et non comme un franchissement.
+
+Ce qui était faux, ce sont les libellés que j'avais écrits : « En arrivant »
+décrivait un événement là où le champ décrit une présence. Une limite imaginaire
+née d'un mot mal choisi.
+
+*Leçon* : quand un utilisateur signale une limite du modèle, vérifier d'abord
+ce que le code fait réellement. Ici la correction a coûté deux lignes de
+traduction, pas une refonte.
+
+### La revue de code, deuxième démonstration
+
+Quatre défauts confirmés, dont deux que ni les tests ni l'usage n'avaient
+atteints : une permission d'arrière-plan jamais vérifiée alors que la fonction
+qui la vérifie existait en code mort, et une course entre le retrait et l'ajout
+de zones — deux opérations asynchrones lancées en parallèle, dont l'ordre
+inversé efface les zones qu'on vient d'enregistrer.
+
+### Fonctionnalités Claude Code de la phase
+
+| Outil | Ce qu'il a apporté |
+|---|---|
+| **Plan mode** | A tranché la question de la carte sur un critère de l'utilisateur, avec vérification en ligne plutôt que de mémoire |
+| **`/code-review`** | 4 défauts, dont 2 hors de portée de toute vérification automatique |
+| **Mémoire** | Deux règles durables ajoutées : l'environnement du shell non interactif, et la séparation visuelle entre notes et synthèse |
+| **Sous-agents** | Toujours pas utilisés. La phase 5 (Wi-Fi) offrira enfin la revue croisée Kotlin ↔ Swift qui les justifie |
+
+### Reste ouvert
+
+Play Services journalise `registration not permitted` sur l'appareil de test,
+alors que toutes les autorisations, les appops et les réglages de localisation
+sont corrects, et que les zones ont démontrablement fonctionné plus tôt dans la
+journée. Impossible de trancher depuis la machine si l'avertissement est fatal
+ou du bruit : seul un test terrain le dira.
