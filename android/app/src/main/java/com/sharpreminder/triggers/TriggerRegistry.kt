@@ -2,6 +2,7 @@ package com.sharpreminder.triggers
 
 import android.content.Context
 import com.sharpreminder.triggers.datetime.DateTimeTriggerModule
+import com.sharpreminder.triggers.location.LocationTriggerModule
 import com.sharpreminder.triggers.model.RuleSnapshot
 import com.sharpreminder.triggers.model.SignalSnapshot
 import com.sharpreminder.triggers.model.TriggerType
@@ -22,7 +23,8 @@ class TriggerRegistry(context: Context) {
 
     private val modules: List<TriggerModule> = listOf(
         DateTimeTriggerModule(context),
-        // Les modules Wi-Fi, Bluetooth et géolocalisation viendront ici.
+        LocationTriggerModule(context),
+        // Les modules Wi-Fi et Bluetooth viendront ici.
     )
 
     private val activeTypes = mutableSetOf<TriggerType>()
