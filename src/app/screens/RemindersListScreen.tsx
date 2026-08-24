@@ -103,7 +103,11 @@ export function RemindersListScreen({ navigation }: Props): React.JSX.Element {
         case 'bluetooth':
           return `${t('triggers.bluetooth')} · ${condition.deviceName}`;
         case 'location':
-          return t('triggers.location');
+          return [
+            t('triggers.location'),
+            t(`editor.location.direction.${condition.direction}`),
+            `${condition.radiusMeters} m`,
+          ].join(' · ');
         default:
           return assertNeverCondition(condition);
       }

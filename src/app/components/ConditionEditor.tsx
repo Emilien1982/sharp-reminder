@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DateTimeConditionEditor } from '@/app/components/DateTimeConditionEditor';
+import { LocationConditionEditor } from '@/app/components/LocationConditionEditor';
 import type { TriggerCondition } from '@/domain/triggers/types';
 import { assertNeverCondition } from '@/domain/triggers/types';
 
@@ -32,13 +33,17 @@ function ConditionBody({
         <DateTimeConditionEditor condition={condition} onChange={onChange} />
       );
 
-    // Pas encore constructibles depuis l'interface : les phases 4 à 6 y
+    case 'location':
+      return (
+        <LocationConditionEditor condition={condition} onChange={onChange} />
+      );
+
+    // Pas encore constructibles depuis l'interface : les phases 5 et 6 y
     // substitueront un éditeur dédié. En attendant, une condition de ce type
     // ne peut provenir que d'une base écrite par une version ultérieure — on
     // l'affiche plutôt que de la faire disparaître silencieusement.
     case 'wifi':
     case 'bluetooth':
-    case 'location':
       return <NotEditableYet type={condition.type} />;
 
     default:
@@ -49,7 +54,7 @@ function ConditionBody({
 function NotEditableYet({
   type,
 }: {
-  type: 'wifi' | 'bluetooth' | 'location';
+  type: 'wifi' | 'bluetooth';
 }): React.JSX.Element {
   const { t } = useTranslation();
 

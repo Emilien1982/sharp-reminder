@@ -39,10 +39,28 @@ export const en: TranslationResources = {
     },
     changeDate: 'Date',
     changeTime: 'Time',
+    deleteReminder: 'Delete this reminder',
+    chooseConditionType: 'What kind of condition?',
     errors: {
       textRequired: 'Enter the reminder text.',
       conditionRequired: 'Add at least one condition.',
       dateTimeInPast: 'That date has already passed.',
+      radiusTooSmall: 'The radius must be at least {{min}} metres.',
+      locationNotPlaced: 'Place the location on the map.',
+    },
+    location: {
+      hint: 'Tap the map to place the location. Pinch to zoom.',
+      useMyPosition: 'My position',
+      radius: 'Radius: {{meters}} m',
+      direction: {
+        enter: 'I am inside the area',
+        exit: 'I am outside the area',
+      },
+      edgeHint:
+        'The reminder fires the moment all its conditions become true together.',
+      backgroundRequired:
+        'Location is only allowed while the app is open: place reminders will not fire in the background. Choose “Allow all the time” in Settings.',
+      openSettings: 'Open Settings',
     },
   },
   notifications: {

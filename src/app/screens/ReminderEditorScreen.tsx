@@ -24,14 +24,17 @@ import { CombinatorSelector } from '@/app/components/CombinatorSelector';
 import { HeaderButton } from '@/app/components/HeaderButton';
 import { ConditionEditor } from '@/app/components/ConditionEditor';
 import type { RootStackParamList } from '@/app/navigation/routes';
+import { ensureForegroundLocationPermission } from '@/app/permissions/location';
 import { ensureNotificationPermission } from '@/app/permissions/notifications';
 import { getReminderRepository } from '@/data/reminderRepository';
 import {
   addCondition,
   createDateTimeCondition,
+  createLocationCondition,
   emptyForm,
   formFromReminder,
   formToDraft,
+  MIN_RADIUS_METERS,
   removeCondition,
   replaceCondition,
   validateForm,
@@ -40,9 +43,12 @@ import {
 } from '@/domain/reminders/reminderForm';
 import {
   createReminder,
+  deleteReminder,
   updateReminder,
 } from '@/domain/reminders/reminderService';
 import type { AfterFireBehaviour } from '@/domain/reminders/types';
+import type { TriggerType } from '@/domain/triggers/types';
+import { getTriggerCosts } from '@/native/triggerEngine';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReminderEditor'>;
 
@@ -101,6 +107,112 @@ export function ReminderEditorScreen({
     setForm(next);
     setErrors([]);
   }, []);
+
+  /**
+   * Avertit avant d'activer un déclencheur gourmand, et attend la réponse.
+   *
+   * Le coût est demandé au natif, jamais codé en dur : il diffère d'une
+   * plateforme à l'autre (règle 3 de CLAUDE.md). Un lieu sollicite la
+   * localisation en continu ; l'utilisateur doit pouvoir refuser en
+   * connaissance de cause.
+   */
+  const confirmHeavyCost = useCallback(
+    (type: TriggerType): Promise<boolean> =>
+      new Promise(resolve => {
+        Alert.alert(
+          t('triggers.costWarning.title'),
+          t('triggers.costWarning.body'),
+          [
+            {
+              text: t('common.cancel'),
+              style: 'cancel',
+              onPress: () => resolve(false),
+            },
+            {
+              text: t('triggers.costWarning.confirm'),
+              onPress: () => resolve(true),
+            },
+          ],
+        );
+        void type;
+      }),
+    [t],
+  );
+
+  const addTypedCondition = useCallback(
+    async (type: 'datetime' | 'location') => {
+      if (form === null) {
+        return;
+      }
+
+      if (type === 'datetime') {
+        applyChange(addCondition(form, createDateTimeCondition(new Date())));
+        return;
+      }
+
+      const costs = await getTriggerCosts();
+      if (costs.location === 'heavy' && !(await confirmHeavyCost('location'))) {
+        return;
+      }
+
+      // Permission demandée ici, au moment où elle devient nécessaire (règle 4).
+      // Un refus n'empêche pas d'ajouter la condition : l'éditeur de lieu
+      // affiche alors un avertissement, plutôt que de bloquer l'utilisateur
+      // devant un formulaire qu'il ne comprend pas.
+      await ensureForegroundLocationPermission();
+
+      applyChange(addCondition(form, createLocationCondition()));
+    },
+    [applyChange, confirmHeavyCost, form],
+  );
+
+  /**
+   * Suppression, exposée ici et pas seulement par un appui long sur la liste.
+   *
+   * Le geste caché existait déjà, mais rien ne le signalait : une action que
+   * l'utilisateur ne peut pas deviner n'existe pas. L'éditeur est l'endroit où
+   * on la cherche, puisque c'est là qu'on regarde le rappel.
+   */
+  const confirmDelete = useCallback(() => {
+    if (reminderId === undefined) {
+      return;
+    }
+
+    Alert.alert(t('reminders.deleteConfirmTitle'), form?.text, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => {
+          void deleteReminder(reminderId)
+            .then(() => navigation.goBack())
+            .catch((cause: unknown) => {
+              Alert.alert(
+                cause instanceof Error ? cause.message : String(cause),
+              );
+            });
+        },
+      },
+    ]);
+  }, [form?.text, navigation, reminderId, t]);
+
+  const promptConditionType = useCallback(() => {
+    Alert.alert(t('editor.chooseConditionType'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('triggers.datetime'),
+        onPress: () => {
+          void addTypedCondition('datetime');
+        },
+      },
+      {
+        text: t('triggers.location'),
+        onPress: () => {
+          void addTypedCondition('location');
+        },
+      },
+    ]);
+  }, [addTypedCondition, t]);
 
   const save = useCallback(async () => {
     if (form === null || saving) {
@@ -178,7 +290,12 @@ export function ReminderEditorScreen({
 
   const conditionError = (conditionId: string): string | null => {
     const found = errors.find(error => error.conditionId === conditionId);
-    return found ? t(`editor.errors.${found.code}`) : null;
+    if (!found) {
+      return null;
+    }
+    // `min` n'est interpolé que par `radiusTooSmall` ; le passer partout
+    // évite un branchement pour un paramètre que les autres ignorent.
+    return t(`editor.errors.${found.code}`, { min: MIN_RADIUS_METERS });
   };
 
   return (
@@ -247,9 +364,7 @@ export function ReminderEditorScreen({
         <Pressable
           accessibilityRole="button"
           style={styles.addButton}
-          onPress={() =>
-            applyChange(addCondition(form, createDateTimeCondition(new Date())))
-          }
+          onPress={promptConditionType}
         >
           <Text style={styles.addButtonText}>+ {t('editor.addCondition')}</Text>
         </Pressable>
@@ -279,6 +394,17 @@ export function ReminderEditorScreen({
             );
           })}
         </View>
+        {reminderId !== undefined && (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.deleteButton}
+            onPress={confirmDelete}
+          >
+            <Text style={styles.deleteButtonText}>
+              {t('editor.deleteReminder')}
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -328,6 +454,15 @@ const styles = StyleSheet.create({
   },
   addButtonText: { color: '#2c6cb0', fontSize: 15, fontWeight: '500' },
   afterFireRow: { flexDirection: 'row', gap: 8 },
+  deleteButton: {
+    marginTop: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#a4302a',
+    alignItems: 'center',
+  },
+  deleteButtonText: { color: '#a4302a', fontSize: 15, fontWeight: '600' },
   option: {
     flex: 1,
     paddingVertical: 10,

@@ -44,10 +44,35 @@ export const fr = {
     },
     changeDate: 'Date',
     changeTime: 'Heure',
+    deleteReminder: 'Supprimer ce rappel',
+    chooseConditionType: 'Quel type de condition ?',
     errors: {
       textRequired: 'Indiquez le texte du rappel.',
       conditionRequired: 'Ajoutez au moins une condition.',
       dateTimeInPast: 'Cette date est déjà passée.',
+      radiusTooSmall: 'Le rayon doit faire au moins {{min}} mètres.',
+      locationNotPlaced: 'Placez le lieu sur la carte.',
+    },
+    location: {
+      hint: 'Appuyez sur la carte pour placer le lieu. Pincez pour zoomer.',
+      useMyPosition: 'Ma position',
+      radius: 'Rayon : {{meters}} m',
+      /**
+       * Ces libellés décrivent un **état**, pas un franchissement — c'est ce
+       * que l'évaluateur vérifie réellement. Les nommer « En arrivant » et
+       * « En partant » laissait croire l'inverse, et rendait impossible à
+       * concevoir un rappel « si je suis encore là à 13h35 », pourtant
+       * parfaitement exprimable.
+       */
+      direction: {
+        enter: 'Je suis dans la zone',
+        exit: 'Je suis hors de la zone',
+      },
+      edgeHint:
+        'Le rappel part au moment où toutes ses conditions deviennent vraies ensemble.',
+      backgroundRequired:
+        'Localisation autorisée seulement quand l’app est ouverte : les rappels de lieu ne se déclencheront pas en arrière-plan. Choisissez « Toujours autoriser » dans les réglages.',
+      openSettings: 'Ouvrir les réglages',
     },
   },
   notifications: {

@@ -7,6 +7,7 @@ import type {
 import type {
   Combinator,
   DateTimeCondition,
+  LocationCondition,
   TriggerCondition,
 } from '@/domain/triggers/types';
 import { assertNeverCondition } from '@/domain/triggers/types';
@@ -42,7 +43,17 @@ export type ReminderFormErrorCode =
    * contrôle, le rappel paraîtrait armé sans l'être — le mode de défaillance
    * silencieux qui a coûté le plus cher en phase 2.
    */
-  | 'dateTimeInPast';
+  | 'dateTimeInPast'
+  /**
+   * En deçà d'une centaine de mètres, le géorepérage des deux systèmes devient
+   * peu fiable : franchissements manqués ou répétés selon la qualité du signal.
+   * L'utilisateur attribuerait ces ratés à l'application.
+   */
+  | 'radiusTooSmall'
+  /**
+   * Le lieu n'a jamais été positionné. Voir `UNPLACED` ci-dessous.
+   */
+  | 'locationNotPlaced';
 
 export interface ReminderFormError {
   code: ReminderFormErrorCode;
@@ -53,6 +64,27 @@ export interface ReminderFormError {
 /** Décalage par défaut d'une nouvelle condition date/heure. */
 const DEFAULT_OFFSET_MS = 60 * 60 * 1000;
 
+/** Rayon proposé par défaut, en mètres. */
+export const DEFAULT_RADIUS_METERS = 150;
+
+/** En deçà, le géorepérage n'est pas fiable. Voir `radiusTooSmall`. */
+export const MIN_RADIUS_METERS = 100;
+
+/**
+ * Coordonnées d'un lieu pas encore positionné.
+ *
+ * Une condition de lieu doit exister dans le formulaire avant que la carte
+ * n'ait pu rapporter une position — l'épingle se place au premier point GPS,
+ * ou par un appui de l'utilisateur. `TriggerCondition` n'a pas de champ
+ * « positionné », et lui en ajouter un obligerait à répercuter le changement
+ * en Kotlin et en Swift pour un état purement transitoire de l'interface.
+ *
+ * D'où cette sentinelle explicite, refusée à l'enregistrement. Le point (0, 0)
+ * se trouve dans le golfe de Guinée : aucun rappel légitime ne s'y trouve, et
+ * le cas est couvert par un test.
+ */
+const UNPLACED = { latitude: 0, longitude: 0 } as const;
+
 export function emptyForm(): ReminderFormState {
   return {
     text: '',
@@ -62,7 +94,10 @@ export function emptyForm(): ReminderFormState {
     // qu'un signal survient, plutôt que de ne jamais sonner.
     combinator: 'OR',
     conditions: [],
-    afterFire: 'delete',
+    // Conservé par défaut : un rappel de lieu ou de créneau se répète
+    // naturellement d'un jour à l'autre, et supprimer d'office obligerait à le
+    // recréer. La suppression reste un choix explicite, rappel par rappel.
+    afterFire: 'keep',
   };
 }
 
@@ -99,6 +134,33 @@ export function createDateTimeCondition(now: Date): DateTimeCondition {
   at.setSeconds(0, 0);
 
   return { id: newId(), type: 'datetime', at: at.toISOString() };
+}
+
+/**
+ * Nouvelle condition de lieu, non encore positionnée.
+ *
+ * L'interface place l'épingle dès qu'une position est connue ; tant que ce
+ * n'est pas fait, `validateForm` refuse l'enregistrement plutôt que d'écrire
+ * un rappel qui ne se déclencherait jamais.
+ */
+export function createLocationCondition(): LocationCondition {
+  return {
+    id: newId(),
+    type: 'location',
+    latitude: UNPLACED.latitude,
+    longitude: UNPLACED.longitude,
+    radiusMeters: DEFAULT_RADIUS_METERS,
+    // « En arrivant » est le cas dominant et le moins surprenant : une
+    // condition de sortie est déjà vraie quand on n'est pas sur place.
+    direction: 'enter',
+  };
+}
+
+export function isPlaced(condition: LocationCondition): boolean {
+  return (
+    condition.latitude !== UNPLACED.latitude ||
+    condition.longitude !== UNPLACED.longitude
+  );
 }
 
 export function addCondition(
@@ -189,12 +251,22 @@ export function validateForm(
         }
         break;
 
+      case 'location':
+        if (!isPlaced(condition)) {
+          errors.push({
+            code: 'locationNotPlaced',
+            conditionId: condition.id,
+          });
+        } else if (condition.radiusMeters < MIN_RADIUS_METERS) {
+          errors.push({ code: 'radiusTooSmall', conditionId: condition.id });
+        }
+        break;
+
       // Rien à valider tant que ces types ne sont pas constructibles depuis
       // l'interface. Le `default` ci-dessous garantit qu'aucun nouveau type ne
       // pourra être ajouté sans qu'on passe ici.
       case 'wifi':
       case 'bluetooth':
-      case 'location':
         break;
 
       default:

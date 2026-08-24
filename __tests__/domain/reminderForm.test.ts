@@ -1,6 +1,9 @@
 import {
   addCondition,
   createDateTimeCondition,
+  createLocationCondition,
+  isPlaced,
+  MIN_RADIUS_METERS,
   emptyForm,
   formFromReminder,
   formToDraft,
@@ -38,6 +41,23 @@ function validForm(): ReminderFormState {
     ],
   };
 }
+
+describe('emptyForm', () => {
+  it('conserve le rappel après déclenchement', () => {
+    // Choix explicite de l'utilisateur : un rappel de lieu ou de créneau se
+    // répète d'un jour à l'autre, le supprimer d'office obligerait à le
+    // recréer à chaque fois.
+    expect(emptyForm().afterFire).toBe('keep');
+  });
+
+  it('naît actif, sans condition, en OU', () => {
+    const form = emptyForm();
+
+    expect(form.enabled).toBe(true);
+    expect(form.conditions).toEqual([]);
+    expect(form.combinator).toBe('OR');
+  });
+});
 
 describe('formFromReminder / formToDraft', () => {
   it('conserve les champs éditables lors d’un aller-retour', () => {
@@ -119,6 +139,89 @@ describe('addCondition / replaceCondition / removeCondition', () => {
 
     expect(next.conditions).toHaveLength(1);
     expect(next.conditions[0]?.id).toBe('c-2');
+  });
+});
+
+describe('createLocationCondition', () => {
+  it('naît non positionnée, avec un rayon par défaut', () => {
+    const condition = createLocationCondition();
+
+    expect(condition.type).toBe('location');
+    expect(condition.direction).toBe('enter');
+    expect(condition.radiusMeters).toBe(150);
+    expect(isPlaced(condition)).toBe(false);
+  });
+
+  it('est considérée positionnée dès qu’une coordonnée bouge', () => {
+    const condition = createLocationCondition();
+
+    expect(isPlaced({ ...condition, latitude: 48.85 })).toBe(true);
+    expect(isPlaced({ ...condition, longitude: 2.35 })).toBe(true);
+  });
+
+  it('donne un identifiant distinct à chaque lieu', () => {
+    expect(createLocationCondition().id).not.toBe(createLocationCondition().id);
+  });
+});
+
+describe('validateForm — lieu', () => {
+  function avecLieu(
+    surcharge: Partial<ReturnType<typeof createLocationCondition>>,
+  ): ReminderFormState {
+    return {
+      ...validForm(),
+      conditions: [
+        { ...createLocationCondition(), id: 'c-lieu', ...surcharge },
+      ],
+    };
+  }
+
+  it('refuse un lieu jamais positionné', () => {
+    // Sans ce refus, la condition partirait au natif avec des coordonnées
+    // dans le golfe de Guinée : le rappel ne sonnerait jamais, sans erreur.
+    expect(validateForm(avecLieu({}), NOW)).toEqual([
+      { code: 'locationNotPlaced', conditionId: 'c-lieu' },
+    ]);
+  });
+
+  it('accepte un lieu positionné au rayon par défaut', () => {
+    expect(
+      validateForm(avecLieu({ latitude: 48.8566, longitude: 2.3522 }), NOW),
+    ).toEqual([]);
+  });
+
+  it('refuse un rayon sous le seuil de fiabilité', () => {
+    expect(
+      validateForm(
+        avecLieu({
+          latitude: 48.8566,
+          longitude: 2.3522,
+          radiusMeters: MIN_RADIUS_METERS - 1,
+        }),
+        NOW,
+      ),
+    ).toEqual([{ code: 'radiusTooSmall', conditionId: 'c-lieu' }]);
+  });
+
+  it('accepte exactement le rayon minimal', () => {
+    expect(
+      validateForm(
+        avecLieu({
+          latitude: 48.8566,
+          longitude: 2.3522,
+          radiusMeters: MIN_RADIUS_METERS,
+        }),
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('signale le lieu non placé avant le rayon, une erreur à la fois', () => {
+    // Reprocher les deux d'un coup pour une condition qu'on n'a pas encore
+    // placée serait du bruit : le rayon n'a pas de sens sans lieu.
+    expect(validateForm(avecLieu({ radiusMeters: 10 }), NOW)).toEqual([
+      { code: 'locationNotPlaced', conditionId: 'c-lieu' },
+    ]);
   });
 });
 
