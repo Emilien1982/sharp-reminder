@@ -5,7 +5,10 @@ import Foundation
 ///
 /// Le format JSON est le contrat entre les trois couches : toute évolution du
 /// type TypeScript doit être répercutée ici et côté Kotlin.
-enum TriggerCondition {
+/// `Equatable` est nécessaire à `Baseline`, qui compare l'ancienne et la
+/// nouvelle version d'une règle pour savoir si elle a changé de sens. La
+/// conformité est synthétisée : toutes les valeurs associées le sont déjà.
+enum TriggerCondition: Equatable {
     case dateTime(id: String, at: Date)
     case wifi(id: String, ssid: String, onConnect: Bool)
     case bluetooth(id: String, deviceId: String, deviceName: String, onConnect: Bool)

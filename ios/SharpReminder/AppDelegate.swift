@@ -14,6 +14,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Avant toute chose : iOS livre les franchissements de zone en relançant
+    // l'application en arrière-plan et en appelant le délégué du gestionnaire
+    // de localisation. Celui-ci doit donc exister dès le lancement, sans quoi
+    // l'événement est perdu.
+    LocationMonitor.shared.activate()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

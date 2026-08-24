@@ -14,7 +14,8 @@ final class TriggerRegistry {
     init(notifier: Notifier, store: RuleSnapshotStore) {
         modules = [
             DateTimeTriggerModule(notifier: notifier, store: store),
-            // Les modules Wi-Fi, Bluetooth et géolocalisation viendront ici.
+            LocationTriggerModule(),
+            // Les modules Wi-Fi et Bluetooth viendront ici.
         ]
     }
 

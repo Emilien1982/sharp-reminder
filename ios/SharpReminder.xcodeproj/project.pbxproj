@@ -27,10 +27,13 @@
 		9A3863DCF8D5FE35CFFC9F25 /* IsoTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B0DA0CC384373FEF646ADA /* IsoTime.swift */; };
 		9C33D2676C1E487D39B7921D /* IsoTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B0DA0CC384373FEF646ADA /* IsoTime.swift */; };
 		A02D7C0094E9FBA0E586C952 /* SignalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63D697D70293BBD80AB0F70 /* SignalSnapshot.swift */; };
+		A49AA59919C649A34AC6CE47 /* LocationTriggerModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E37F39A1106E0EB769A9F86 /* LocationTriggerModule.swift */; };
 		B20CF74F8BA3EF9CBF3F4264 /* RuleSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D612A624125954C2E5177266 /* RuleSnapshot.swift */; };
 		BDB72246946C8DE6D570540F /* SignalSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63D697D70293BBD80AB0F70 /* SignalSnapshot.swift */; };
+		C170E1F4010D59BD0C0DFCC8 /* LocationMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8F1F2B7F47E22D2F437A8C9 /* LocationMonitor.swift */; };
 		D2D516DB41F1D02012EC0E5B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		D3108055CCB3F99FFB0DEE61 /* TriggerEngineModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = BF97C3D0C28E5DA815638399 /* TriggerEngineModule.mm */; };
+		D4A12FE811EC7C061EAA23B6 /* Baseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85DEB8A9EA5B8446C35B8212 /* Baseline.swift */; };
 		F4FA2F4BE05B6C9132738AD5 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C45E6842F06DBFB373079AB6 /* Notifier.swift */; };
 		FC4B6C256A03B495F93F3347 /* TriggerModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACCF1EA14087948186C7523D /* TriggerModule.swift */; };
 /* End PBXBuildFile section */
@@ -58,10 +61,13 @@
 		5709B34CF0A7D63546082F79 /* Pods-SharpReminder.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SharpReminder.release.xcconfig"; path = "Target Support Files/Pods-SharpReminder/Pods-SharpReminder.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-SharpReminder.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SharpReminder.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		64FABA3937DD01DA085BC8FE /* TriggerCondition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TriggerCondition.swift; sourceTree = "<group>"; };
+		6E37F39A1106E0EB769A9F86 /* LocationTriggerModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocationTriggerModule.swift; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SharpReminder/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SharpReminder/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		85DEB8A9EA5B8446C35B8212 /* Baseline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Baseline.swift; sourceTree = "<group>"; };
 		8B19D4EF7577AAC56E2EB9AB /* DateTimeTriggerModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DateTimeTriggerModule.swift; sourceTree = "<group>"; };
 		8BD1D823CA1369186E3AC5AC /* TriggerRegistry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TriggerRegistry.swift; sourceTree = "<group>"; };
+		A8F1F2B7F47E22D2F437A8C9 /* LocationMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocationMonitor.swift; sourceTree = "<group>"; };
 		AA881077D49C62385690714A /* EvaluatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EvaluatorTests.swift; sourceTree = "<group>"; };
 		AC7086EDCD49EFA677003998 /* Evaluator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Evaluator.swift; sourceTree = "<group>"; };
 		ACCF1EA14087948186C7523D /* TriggerModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TriggerModule.swift; sourceTree = "<group>"; };
@@ -192,6 +198,9 @@
 				342DB86E30EF8650DEA54962 /* TriggerEngineBridge.swift */,
 				ACCF1EA14087948186C7523D /* TriggerModule.swift */,
 				8BD1D823CA1369186E3AC5AC /* TriggerRegistry.swift */,
+				85DEB8A9EA5B8446C35B8212 /* Baseline.swift */,
+				A8F1F2B7F47E22D2F437A8C9 /* LocationMonitor.swift */,
+				6E37F39A1106E0EB769A9F86 /* LocationTriggerModule.swift */,
 			);
 			name = Triggers;
 			path = SharpReminder/Triggers;
@@ -386,6 +395,9 @@
 				FC4B6C256A03B495F93F3347 /* TriggerModule.swift in Sources */,
 				3DD4B972D3D2D836E05B0700 /* TriggerRegistry.swift in Sources */,
 				D3108055CCB3F99FFB0DEE61 /* TriggerEngineModule.mm in Sources */,
+				D4A12FE811EC7C061EAA23B6 /* Baseline.swift in Sources */,
+				C170E1F4010D59BD0C0DFCC8 /* LocationMonitor.swift in Sources */,
+				A49AA59919C649A34AC6CE47 /* LocationTriggerModule.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
