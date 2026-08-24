@@ -32,6 +32,11 @@ object TriggerEngine {
         val store = RuleSnapshotStore(context)
         val registry = TriggerRegistry(context)
 
+        // Lues AVANT l'écrasement : la comparaison entre l'ancienne et la
+        // nouvelle version d'une règle est ce qui permet de détecter qu'elle a
+        // changé de sens.
+        val anciennes = store.loadRules().associateBy { it.reminderId }
+
         store.saveRules(rawJson)
         val rules = store.loadRules()
         registry.reconcile(rules)
@@ -40,7 +45,7 @@ object TriggerEngine {
         val previous = store.previousSatisfaction().toMutableMap()
 
         rules.forEach { rule ->
-            if (!previous.containsKey(rule.reminderId)) {
+            if (Baseline.needsReset(anciennes[rule.reminderId], rule)) {
                 previous[rule.reminderId] = isSatisfied(rule, signal)
             }
         }
@@ -79,7 +84,16 @@ object TriggerEngine {
             val previouslySatisfied = previous[rule.reminderId] ?: false
 
             if (Evaluator.shouldFire(previouslySatisfied, currentlySatisfied)) {
-                notifier.notify(rule.reminderId, rule.notificationBody)
+                // Le résultat est lu, pas ignoré : sans cela, une
+                // notification refusée par le système laissait le rappel
+                // « déclenché » en base sans que rien n'apparaisse à l'écran —
+                // impossible à distinguer d'un déclencheur défaillant.
+                if (!notifier.notify(rule.reminderId, rule.notificationBody)) {
+                    android.util.Log.e(
+                        Notifier.TAG,
+                        "Rappel ${rule.reminderId} déclenché mais NON affiché",
+                    )
+                }
 
                 store.enqueueFiredEvent(
                     FiredEvent(

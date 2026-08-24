@@ -23,6 +23,14 @@ enum TriggerEngine {
             // Validation avant enregistrement : un JSON invalide doit remonter
             // au JavaScript, pas corrompre le miroir en silence.
             let rules = try RuleSnapshot.list(fromRawJson: rawJson)
+
+            // Lues AVANT l'écrasement : comparer l'ancienne et la nouvelle
+            // version d'une règle est ce qui permet de voir qu'elle a changé.
+            let anciennes = Dictionary(
+                store.loadRules().map { ($0.reminderId, $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+
             store.saveRules(rawJson)
 
             let registry = TriggerRegistry(notifier: notifier, store: store)
@@ -49,7 +57,8 @@ enum TriggerEngine {
             let signal = registry.buildSignal(base: .empty(now: Date()))
             var previous = store.previousSatisfaction()
 
-            for rule in rules where previous[rule.reminderId] == nil {
+            for rule in rules
+            where Baseline.needsReset(previous: anciennes[rule.reminderId], current: rule) {
                 previous[rule.reminderId] = Evaluator.areConditionsSatisfied(
                     rule.conditions, rule.combinator, signal
                 )
