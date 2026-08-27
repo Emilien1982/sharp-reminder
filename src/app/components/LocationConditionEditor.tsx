@@ -90,19 +90,41 @@ export function LocationConditionEditor({
     void hasBackgroundLocationPermission().then(setBackgroundAllowed);
   }, []);
 
-  const moveTo = useCallback(
+  /**
+   * Déplace le lieu, sans toucher au cadrage.
+   *
+   * Utilisé quand c'est l'utilisateur qui a bougé la carte : recadrer serait
+   * lui reprendre le contrôle. Recalculer la région depuis le rayon ramenait
+   * le zoom à trois fois la zone à chaque relâchement — impossible de
+   * dézoomer pour rejoindre un lieu éloigné.
+   */
+  const setCoordinate = useCallback(
     (coordinate: LatLng) => {
       onChange({
         ...condition,
         latitude: coordinate.latitude,
         longitude: coordinate.longitude,
       });
+    },
+    [condition, onChange],
+  );
+
+  /**
+   * Déplace le lieu **et** recadre la carte dessus.
+   *
+   * Réservé aux sauts délibérés — « Ma position », ou le premier point GPS d'un
+   * lieu jamais positionné — où l'utilisateur attend justement que la vue
+   * suive.
+   */
+  const recenterOn = useCallback(
+    (coordinate: LatLng) => {
+      setCoordinate(coordinate);
       mapRef.current?.animateToRegion(
         regionFor({ ...condition, ...coordinate }),
         300,
       );
     },
-    [condition, onChange],
+    [condition, setCoordinate],
   );
 
   /**
@@ -126,10 +148,10 @@ export function LocationConditionEditor({
       setUserPosition(position);
 
       if (!placed) {
-        moveTo(position);
+        recenterOn(position);
       }
     },
-    [moveTo, placed],
+    [placed, recenterOn],
   );
 
   return (
@@ -178,7 +200,7 @@ export function LocationConditionEditor({
           // doigt, qui masque justement ce qu'on cherche à viser.
           onRegionChangeComplete={(region: Region) => {
             if (mapUnlocked) {
-              moveTo({
+              setCoordinate({
                 latitude: region.latitude,
                 longitude: region.longitude,
               });
@@ -231,7 +253,7 @@ export function LocationConditionEditor({
           disabled={userPosition === null}
           onPress={() => {
             if (userPosition !== null) {
-              moveTo(userPosition);
+              recenterOn(userPosition);
             }
           }}
         >
