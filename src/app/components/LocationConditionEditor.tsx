@@ -10,12 +10,10 @@ import {
 } from 'react-native';
 import MapView, {
   Circle,
-  Marker,
   PROVIDER_DEFAULT,
   PROVIDER_GOOGLE,
   type LatLng,
-  type MapPressEvent,
-  type MarkerDragStartEndEvent,
+  type Region,
   type UserLocationChangeEvent,
 } from 'react-native-maps';
 
@@ -76,6 +74,15 @@ export function LocationConditionEditor({
   // bouton restait grisé après l'arrivée du premier point GPS.
   const [userPosition, setUserPosition] = useState<LatLng | null>(null);
   const [backgroundAllowed, setBackgroundAllowed] = useState(true);
+  /**
+   * La carte est verrouillée par défaut.
+   *
+   * Deux exigences s'opposent : la carte veut capter les glissements pour se
+   * déplacer, le formulaire veut les capter pour défiler. Verrouillée, elle
+   * laisse passer le défilement ; un appui long d'une seconde la déverrouille
+   * le temps de viser, et un bouton explicite la referme.
+   */
+  const [mapUnlocked, setMapUnlocked] = useState(false);
 
   const placed = isPlaced(condition);
 
@@ -144,7 +151,14 @@ export function LocationConditionEditor({
         </Pressable>
       )}
 
-      <View style={styles.mapFrame}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('editor.location.hint')}
+        delayLongPress={1000}
+        disabled={mapUnlocked}
+        onLongPress={() => setMapUnlocked(true)}
+        style={[styles.mapFrame, mapUnlocked && styles.mapFrameUnlocked]}
+      >
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -152,47 +166,66 @@ export function LocationConditionEditor({
             Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT
           }
           initialRegion={placed ? regionFor(condition) : UNKNOWN_REGION}
-          // La carte ne capte pas le glissement vertical : à l'intérieur d'un
-          // formulaire défilant, elle absorbait le geste et rendait tout ce qui
-          // se trouve en dessous — rayon, sens, suppression — inatteignable.
-          // Le point se pose par appui ou en déplaçant l'épingle, et le zoom
-          // reste disponible pour viser un lieu éloigné.
-          scrollEnabled={false}
+          // Le défilement de la carte n'est rendu qu'une fois déverrouillée :
+          // sinon elle absorbe le geste et rend inatteignable tout ce qui se
+          // trouve sous elle dans le formulaire.
+          scrollEnabled={mapUnlocked}
           zoomEnabled
           showsUserLocation
           onUserLocationChange={onUserLocation}
-          onPress={(event: MapPressEvent) =>
-            moveTo(event.nativeEvent.coordinate)
-          }
+          // Le lieu suit le centre de la carte : viser en déplaçant la carte
+          // est nettement plus précis que de déplacer une épingle sous le
+          // doigt, qui masque justement ce qu'on cherche à viser.
+          onRegionChangeComplete={(region: Region) => {
+            if (mapUnlocked) {
+              moveTo({
+                latitude: region.latitude,
+                longitude: region.longitude,
+              });
+            }
+          }}
         >
           {placed && (
-            <>
-              <Marker
-                coordinate={{
-                  latitude: condition.latitude,
-                  longitude: condition.longitude,
-                }}
-                draggable
-                onDragEnd={(event: MarkerDragStartEndEvent) =>
-                  moveTo(event.nativeEvent.coordinate)
-                }
-              />
-              <Circle
-                center={{
-                  latitude: condition.latitude,
-                  longitude: condition.longitude,
-                }}
-                radius={condition.radiusMeters}
-                strokeColor="#2c6cb0"
-                fillColor="rgba(44, 108, 176, 0.15)"
-              />
-            </>
+            <Circle
+              center={{
+                latitude: condition.latitude,
+                longitude: condition.longitude,
+              }}
+              radius={condition.radiusMeters}
+              strokeColor="#2c6cb0"
+              fillColor="rgba(44, 108, 176, 0.15)"
+            />
           )}
         </MapView>
-      </View>
+
+        {/*
+          Épingle dessinée par-dessus, jamais dans la carte : elle marque le
+          centre de l'écran, pas une coordonnée. `pointerEvents` la rend
+          transparente au toucher, sans quoi elle intercepterait l'appui long.
+        */}
+        <View pointerEvents="none" style={styles.centerPin}>
+          <Text style={styles.centerPinGlyph}>◎</Text>
+        </View>
+
+        {mapUnlocked && (
+          <Pressable
+            accessibilityRole="button"
+            style={styles.doneButton}
+            onPress={() => setMapUnlocked(false)}
+          >
+            <Text style={styles.doneButtonText}>
+              {t('editor.location.unlockDone')}
+            </Text>
+          </Pressable>
+        )}
+      </Pressable>
 
       <View style={styles.row}>
-        <Text style={styles.hint}>{t('editor.location.hint')}</Text>
+        <Text style={styles.hint}>
+          {t(
+            mapUnlocked ? 'editor.location.hintMoving' : 'editor.location.hint',
+          )}
+        </Text>
         <Pressable
           accessibilityRole="button"
           disabled={userPosition === null}
@@ -276,6 +309,27 @@ const styles = StyleSheet.create({
     borderColor: '#c9c9c9',
   },
   map: { flex: 1 },
+  mapFrameUnlocked: { borderColor: '#2c6cb0', borderWidth: 2 },
+  centerPin: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerPinGlyph: { fontSize: 30, color: '#a4302a', fontWeight: '700' },
+  doneButton: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    backgroundColor: '#2c6cb0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  doneButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   hint: { flex: 1, fontSize: 12, opacity: 0.6 },
   action: { fontSize: 14, color: '#2c6cb0', fontWeight: '500' },

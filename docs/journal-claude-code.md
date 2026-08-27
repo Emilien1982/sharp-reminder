@@ -478,10 +478,39 @@ inversé efface les zones qu'on vient d'enregistrer.
 | **Mémoire** | Deux règles durables ajoutées : l'environnement du shell non interactif, et la séparation visuelle entre notes et synthèse |
 | **Sous-agents** | Toujours pas utilisés. La phase 5 (Wi-Fi) offrira enfin la revue croisée Kotlin ↔ Swift qui les justifie |
 
-### Reste ouvert
+### Le test terrain, fait depuis le bureau
 
-Play Services journalise `registration not permitted` sur l'appareil de test,
-alors que toutes les autorisations, les appops et les réglages de localisation
-sont corrects, et que les zones ont démontrablement fonctionné plus tôt dans la
-journée. Impossible de trancher depuis la machine si l'avertissement est fatal
-ou du bruit : seul un test terrain le dira.
+Le doute laissé ouvert — Play Services journalisant `registration not
+permitted` — a été levé sans se déplacer, en simulant la position sur le
+téléphone physique.
+
+Le piège a coûté deux essais : **un fournisseur de position fictive est détruit
+avec la session `adb shell` qui l'a créé.** Enchaîner les commandes depuis le
+Mac ne fonctionne donc pas, la position réelle revenant avant que le système
+n'ait rien propagé. Le journal l'a montré noir sur blanc : `added mock provider
+override` à 11:51:08, `removed` à 11:51:37 — la fin de ma commande. Tout doit
+tenir dans une seule invocation, ce qu'encode `scripts/simuler-position.sh`.
+
+Aller-retour Saint-Nicolas-de-Port ↔ Nancy centre, 11 km. La file du moteur
+natif porte trois déclenchements : l'entrée à la création, **la sortie** au
+départ, **l'entrée** au retour. Notification vue à l'écran par l'utilisateur.
+
+L'avertissement de Play Services était donc du bruit. *Leçon* : un avertissement
+de bibliothèque tierce n'est pas une preuve de panne — seul le comportement
+observé en est une, dans un sens comme dans l'autre.
+
+### La carte : deux contraintes qui s'excluent
+
+Une carte dans un formulaire défilant pose un conflit irréductible : les deux
+veulent capter le glissement vertical. Trois états ont été essayés :
+
+1. carte libre → le formulaire ne défile plus, tout ce qui est sous la carte
+   devient inatteignable, suppression comprise ;
+2. carte figée → le formulaire défile, mais viser un lieu éloigné devient
+   impossible ;
+3. **carte verrouillée, déverrouillée par appui long d'une seconde**, avec
+   l'épingle fixe au centre et un bouton explicite pour refermer.
+
+Le troisième est venu de l'utilisateur. Il ajoute aussi que viser en déplaçant
+la carte est plus précis que de traîner une épingle sous le doigt — lequel
+masque précisément ce qu'on cherche à viser.

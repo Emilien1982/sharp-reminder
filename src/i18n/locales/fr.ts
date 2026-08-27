@@ -54,7 +54,9 @@ export const fr = {
       locationNotPlaced: 'Placez le lieu sur la carte.',
     },
     location: {
-      hint: 'Appuyez sur la carte pour placer le lieu. Pincez pour zoomer.',
+      hint: 'Appui long sur la carte pour la déplacer.',
+      hintMoving: 'Déplacez la carte : le lieu est au centre.',
+      unlockDone: 'Terminé',
       useMyPosition: 'Ma position',
       radius: 'Rayon : {{meters}} m',
       /**

@@ -49,7 +49,9 @@ export const en: TranslationResources = {
       locationNotPlaced: 'Place the location on the map.',
     },
     location: {
-      hint: 'Tap the map to place the location. Pinch to zoom.',
+      hint: 'Press and hold the map to move it.',
+      hintMoving: 'Move the map: the location is at the centre.',
+      unlockDone: 'Done',
       useMyPosition: 'My position',
       radius: 'Radius: {{meters}} m',
       direction: {
