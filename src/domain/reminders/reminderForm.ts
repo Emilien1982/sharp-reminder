@@ -53,7 +53,26 @@ export type ReminderFormErrorCode =
   /**
    * Le lieu n'a jamais été positionné. Voir `UNPLACED` ci-dessous.
    */
-  | 'locationNotPlaced';
+  | 'locationNotPlaced'
+  /** Fenêtre inversée : elle ne s'ouvrirait jamais. */
+  | 'windowInverted'
+  /**
+   * Fenêtre déjà refermée. Même famille de défaut que `dateTimeInPast` : le
+   * rappel paraîtrait armé et ne sonnerait jamais.
+   */
+  | 'windowClosed'
+  /**
+   * Fenêtre déjà ouverte à l'enregistrement, sans autre signal pour faire
+   * basculer l'expression.
+   *
+   * Troisième membre de la même famille, et le plus retors : la fenêtre est
+   * bien à venir *par sa fin*, mais elle ne peut plus **s'ouvrir**. Or c'est
+   * l'ouverture qui déclenche. Ni `AlarmManager` ni
+   * `UNCalendarNotificationTrigger` n'acceptent une échéance passée, et
+   * `syncRules` pose la ligne de base à « déjà satisfaite » : plus aucune
+   * transition ne surviendra. Le rappel s'afficherait actif et resterait muet.
+   */
+  | 'windowAlreadyOpen';
 
 export interface ReminderFormError {
   code: ReminderFormErrorCode;
@@ -212,7 +231,12 @@ function estInchangee(
       previous =>
         previous.id === condition.id &&
         previous.type === 'datetime' &&
-        previous.at === condition.at,
+        previous.at === condition.at &&
+        // ⚠️ `until` compte autant que `at`. L'oublier rendait une fenêtre
+        // « non touchée » alors qu'on venait d'en déplacer la fin : la règle
+        // du créneau déjà refermé était sautée, et un rappel mort
+        // s'enregistrait sans le moindre avertissement.
+        previous.until === condition.until,
     ) ?? false
   );
 }
@@ -240,16 +264,52 @@ export function validateForm(
     errors.push({ code: 'conditionRequired' });
   }
 
+  // Une fenêtre déjà ouverte ne peut plus faire basculer une expression que le
+  // moteur juge donc satisfaite dès l'enregistrement. Une seule situation la
+  // rachète : en ET, un signal d'une autre nature reste capable de basculer
+  // plus tard — « je suis encore au magasin, et la plage a commencé ». En OU,
+  // la fenêtre suffit déjà à satisfaire la règle, donc rien ne basculera.
+  const autreSignalPeutBasculer =
+    form.combinator === 'AND' &&
+    form.conditions.some(condition => condition.type !== 'datetime');
+
   for (const condition of form.conditions) {
     switch (condition.type) {
-      case 'datetime':
-        if (
-          new Date(condition.at).getTime() <= now.getTime() &&
-          !estInchangee(original, condition)
-        ) {
-          errors.push({ code: 'dateTimeInPast', conditionId: condition.id });
+      case 'datetime': {
+        const inchangee = estInchangee(original, condition);
+        const debut = new Date(condition.at).getTime();
+        const fin =
+          condition.until === undefined
+            ? undefined
+            : new Date(condition.until).getTime();
+
+        if (fin !== undefined && fin <= debut) {
+          // Signalé même sur une condition inchangée : une fenêtre inversée
+          // n'est jamais légitime, elle ne peut provenir que d'une erreur.
+          errors.push({ code: 'windowInverted', conditionId: condition.id });
+        } else if (!inchangee) {
+          // Les trois règles suivantes ne s'appliquent qu'à ce que
+          // l'utilisateur vient de choisir : une condition enregistrée qu'il
+          // n'a pas touchée ne doit jamais rendre son rappel impossible à
+          // rouvrir — le piège de la phase 4.
+          if (fin !== undefined && fin <= now.getTime()) {
+            errors.push({ code: 'windowClosed', conditionId: condition.id });
+          } else if (debut <= now.getTime()) {
+            if (fin === undefined) {
+              errors.push({
+                code: 'dateTimeInPast',
+                conditionId: condition.id,
+              });
+            } else if (!autreSignalPeutBasculer) {
+              errors.push({
+                code: 'windowAlreadyOpen',
+                conditionId: condition.id,
+              });
+            }
+          }
         }
         break;
+      }
 
       case 'location':
         if (!isPlaced(condition)) {

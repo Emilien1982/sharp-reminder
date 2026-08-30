@@ -164,6 +164,179 @@ describe('createLocationCondition', () => {
   });
 });
 
+describe('validateForm — fenêtre horaire', () => {
+  function avecFenetre(at: string, until?: string): ReminderFormState {
+    return {
+      ...validForm(),
+      conditions: [{ id: 'c-1', type: 'datetime', at, until }],
+    };
+  }
+
+  it('accepte une fenêtre à venir', () => {
+    expect(
+      validateForm(
+        avecFenetre('2026-08-21T14:00:00.000Z', '2026-08-21T18:00:00.000Z'),
+        NOW,
+      ),
+    ).toEqual([]);
+  });
+
+  it('refuse une fenêtre seule dont le début est déjà passé', () => {
+    // La fin est à venir, mais c'est l'OUVERTURE qui déclenche, et elle est
+    // révolue : aucune alarme ne se programme dans le passé, et `syncRules`
+    // pose la ligne de base à « déjà satisfaite ». Le rappel s'afficherait
+    // actif et resterait muet — le défaut que ce contrôle existe pour éviter.
+    expect(
+      validateForm(
+        avecFenetre('2026-08-21T08:00:00.000Z', '2026-08-21T18:00:00.000Z'),
+        NOW,
+      ),
+    ).toEqual([{ code: 'windowAlreadyOpen', conditionId: 'c-1' }]);
+  });
+
+  it('accepte une fenêtre déjà ouverte si un lieu peut encore basculer', () => {
+    // « Je passe devant le magasin, et la plage a commencé il y a deux
+    // heures » : en ET, l'entrée dans la zone reste une transition à venir.
+    const forme: ReminderFormState = {
+      ...validForm(),
+      combinator: 'AND',
+      conditions: [
+        {
+          id: 'c-1',
+          type: 'datetime',
+          at: '2026-08-21T08:00:00.000Z',
+          until: '2026-08-21T18:00:00.000Z',
+        },
+        {
+          id: 'c-2',
+          type: 'location',
+          latitude: 48.63,
+          longitude: 6.3,
+          radiusMeters: 150,
+          direction: 'enter',
+        },
+      ],
+    };
+
+    expect(validateForm(forme, NOW)).toEqual([]);
+  });
+
+  it('refuse une fenêtre déjà ouverte en OU, malgré un lieu', () => {
+    // En OU la fenêtre suffit à satisfaire la règle : elle est vraie dès
+    // l'enregistrement, donc plus rien ne basculera jamais.
+    const forme: ReminderFormState = {
+      ...validForm(),
+      combinator: 'OR',
+      conditions: [
+        {
+          id: 'c-1',
+          type: 'datetime',
+          at: '2026-08-21T08:00:00.000Z',
+          until: '2026-08-21T18:00:00.000Z',
+        },
+        {
+          id: 'c-2',
+          type: 'location',
+          latitude: 48.63,
+          longitude: 6.3,
+          radiusMeters: 150,
+          direction: 'enter',
+        },
+      ],
+    };
+
+    expect(validateForm(forme, NOW)).toContainEqual({
+      code: 'windowAlreadyOpen',
+      conditionId: 'c-1',
+    });
+  });
+
+  it('laisse rouvrir un rappel dont la fenêtre s’est ouverte entre-temps', () => {
+    // Condition enregistrée et non touchée : refuser ici rendrait le rappel
+    // impossible à corriger, exactement le piège de la phase 4.
+    const forme = avecFenetre(
+      '2026-08-21T08:00:00.000Z',
+      '2026-08-21T18:00:00.000Z',
+    );
+
+    expect(validateForm(forme, NOW, forme)).toEqual([]);
+  });
+
+  it('refuse une fenêtre déjà refermée', () => {
+    expect(
+      validateForm(
+        avecFenetre('2026-08-21T06:00:00.000Z', '2026-08-21T08:00:00.000Z'),
+        NOW,
+      ),
+    ).toEqual([{ code: 'windowClosed', conditionId: 'c-1' }]);
+  });
+
+  it('refuse une fenêtre inversée', () => {
+    expect(
+      validateForm(
+        avecFenetre('2026-08-21T18:00:00.000Z', '2026-08-21T14:00:00.000Z'),
+        NOW,
+      ),
+    ).toEqual([{ code: 'windowInverted', conditionId: 'c-1' }]);
+  });
+
+  it('refuse une fenêtre de durée nulle', () => {
+    const instant = '2026-08-21T14:00:00.000Z';
+
+    expect(validateForm(avecFenetre(instant, instant), NOW)).toEqual([
+      { code: 'windowInverted', conditionId: 'c-1' },
+    ]);
+  });
+
+  it('signale l’inversion même sur une condition inchangée', () => {
+    // Contrairement à une fenêtre passée, une fenêtre inversée ne peut venir
+    // que d'une erreur : la laisser passer serait garder un rappel mort.
+    const forme = avecFenetre(
+      '2026-08-21T18:00:00.000Z',
+      '2026-08-21T14:00:00.000Z',
+    );
+
+    expect(validateForm(forme, NOW, forme)).toContainEqual({
+      code: 'windowInverted',
+      conditionId: 'c-1',
+    });
+  });
+
+  it('refuse une fenêtre refermée dont on vient de déplacer la FIN', () => {
+    // Défaut réel : `estInchangee` ne comparait que `at`. Déplacer la seule
+    // borne de fin faisait passer la condition pour intacte, et un rappel
+    // définitivement mort s'enregistrait sans avertissement.
+    const avant = avecFenetre(
+      '2026-08-21T08:00:00.000Z',
+      '2026-08-21T18:00:00.000Z',
+    );
+    const apres = avecFenetre(
+      '2026-08-21T08:00:00.000Z',
+      '2026-08-21T09:00:00.000Z',
+    );
+
+    expect(validateForm(apres, NOW, avant)).toContainEqual({
+      code: 'windowClosed',
+      conditionId: 'c-1',
+    });
+  });
+
+  it('tolère une fenêtre refermée que l’utilisateur n’a pas touchée', () => {
+    const forme = avecFenetre(
+      '2026-08-21T06:00:00.000Z',
+      '2026-08-21T08:00:00.000Z',
+    );
+
+    expect(validateForm(forme, NOW, forme)).toEqual([]);
+  });
+
+  it('sans borne haute, la règle de date passée s’applique toujours', () => {
+    expect(validateForm(avecFenetre('2026-08-21T09:00:00.000Z'), NOW)).toEqual([
+      { code: 'dateTimeInPast', conditionId: 'c-1' },
+    ]);
+  });
+});
+
 describe('validateForm — lieu', () => {
   function avecLieu(
     surcharge: Partial<ReturnType<typeof createLocationCondition>>,
