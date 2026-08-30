@@ -114,9 +114,21 @@ class LocationTriggerModule(private val context: Context) : TriggerModule {
             }
     }
 
+    /**
+     * ⚠️ Les zones occupées ne sont **pas** oubliées ici, seules les zones
+     * enregistrées le sont — elles viennent d'être rendues au système.
+     *
+     * Tout jeter paraissait plus propre, et a produit un faux déclenchement :
+     * depuis que le moteur retire du miroir une règle qui vient de sonner,
+     * `stop()` survient à chaque déclenchement de la dernière règle de lieu. Au
+     * réarmement, la zone paraissait neuve, `primeInsideSet` la redécouvrait
+     * occupée, et le rappel sonnait aussitôt — alors que rien n'avait été
+     * franchi. Garder cette connaissance permet à la ligne de base d'être posée
+     * à « déjà dans la zone », donc de ne pas déclencher.
+     */
     override fun stop() {
         removeRegisteredGeofences()
-        state.clear()
+        state.replaceKnown(emptySet())
     }
 
     private fun removeRegisteredGeofences() {
@@ -186,10 +198,15 @@ class LocationTriggerModule(private val context: Context) : TriggerModule {
                     distance[0] <= zone.radiusMeters
                 }
 
-                // `markInside` et non `replaceInside` : seules les zones
-                // neuves sont concernées, l'état des autres reste celui que
-                // les franchissements ont établi.
-                state.markInside(inside.map { it.id })
+                // Les deux sens sont écrits, et seulement pour les zones
+                // amorcées : l'état des autres reste celui que les
+                // franchissements ont établi. Marquer aussi la sortie est ce
+                // qui rattrape une connaissance devenue fausse pendant que la
+                // zone n'était plus surveillée — sans quoi un rappel resterait
+                // muet en croyant qu'on n'a jamais quitté les lieux.
+                val inZone = inside.map { it.id }.toSet()
+                state.markInside(inZone)
+                state.markOutside(zones.map { it.id }.filterNot { it in inZone })
                 TriggerEngine.evaluateAll(context, TriggerType.LOCATION.wireName)
             }
     }

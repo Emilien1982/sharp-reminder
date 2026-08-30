@@ -135,8 +135,18 @@ final class LocationMonitor: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// ⚠️ Les zones occupées ne sont **pas** oubliées : seule la surveillance
+    /// s'arrête.
+    ///
+    /// Tout jeter a produit un faux déclenchement. Depuis que le moteur retire
+    /// du miroir une règle qui vient de sonner, cet arrêt survient à chaque
+    /// déclenchement de la dernière règle de lieu. Au réarmement, la ligne de
+    /// base était posée sur un état vide — donc « hors de la zone » — puis
+    /// `requestState` répondait « dedans » : une transition surgissait sans que
+    /// rien n'ait été franchi, et le rappel sonnait aussitôt. `requestState`
+    /// rectifie de toute façon les deux sens au prochain enregistrement, cette
+    /// connaissance ne peut donc pas rester fausse longtemps.
     func stopAll() {
-        defaults.removeObject(forKey: Keys.inside)
         onMain { [self] in
             for region in manager.monitoredRegions {
                 manager.stopMonitoring(for: region)
