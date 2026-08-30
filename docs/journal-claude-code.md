@@ -514,3 +514,83 @@ veulent capter le glissement vertical. Trois états ont été essayés :
 Le troisième est venu de l'utilisateur. Il ajoute aussi que viser en déplaçant
 la carte est plus précis que de traîner une épingle sous le doigt — lequel
 masque précisément ce qu'on cherche à viser.
+
+---
+
+## Phase 5 — Plage horaire et déclenchement unique
+
+### Une fonctionnalité qui en révèle une autre, jamais nommée
+
+Le besoin était double, et le second n'était pas visible avant que le premier
+ne soit formulé : « si je passe devant mon magasin samedi entre 10 h et 18 h ».
+La plage manquait, mais surtout **« le conserver » signifiait jusqu'ici
+« resonner à chaque fois »** — le comportement que l'utilisateur imaginait
+ajouter plus tard existait déjà, sans nom ni intention, comme effet de bord de
+la remise à jour de la ligne de base.
+
+*Leçon* : avant de construire une option, chercher si le comportement contraire
+n'est pas déjà là par accident. La phase 5 n'a pas ajouté un mécanisme, elle a
+nommé et inversé un défaut par défaut.
+
+### Le défaut que seuls les doigts pouvaient trouver
+
+`estInchangee` — la fonction qui épargne les règles de validation à une
+condition que l'utilisateur n'a pas touchée — comparait `at` et rien d'autre.
+En ajoutant `until`, j'ai créé un champ qu'elle ignorait : déplacer la seule fin
+d'une fenêtre faisait passer la condition pour intacte, la règle du créneau
+refermé était sautée, et un rappel mort s'enregistrait sans un mot.
+
+**Aucun des 109 tests ne pouvait l'attraper.** Ils exerçaient `until` et
+`estInchangee` séparément, jamais leur croisement. Il a fallu manipuler l'écran
+du téléphone, ce que l'utilisateur avait exigé : « je ne veux pas faire les
+vérifications moi-même, tu dois les faire toi-même ».
+
+*Leçon* : deux mécanismes corrects séparément ne le sont pas ensemble. Quand un
+champ s'ajoute à une structure, chercher **toutes** les fonctions qui comparent
+cette structure, pas seulement celles qui la lisent.
+
+### La revue de code, troisième démonstration — et la plus utile
+
+Quatre défauts confirmés, dont deux graves, tous invisibles aux tests :
+
+1. **Le déclenchement unique n'existait qu'en JavaScript.** Le natif gardait la
+   règle et réarmait sa ligne de base : application tuée, repasser devant le
+   magasin renotifiait. La fonctionnalité de la phase était donc à moitié
+   absente, et mes propres essais sur appareil ne l'avaient pas vu — je
+   rouvrais l'application entre deux mesures, ce qui appliquait justement le
+   filtre JavaScript manquant.
+2. **Une fenêtre déjà ouverte s'enregistrait sans avertissement et ne sonnait
+   jamais** : aucune alarme ne se programme dans le passé, et la ligne de base
+   est posée à « déjà satisfaite ». J'avais écrit en commentaire l'inverse de ce
+   que le moteur savait faire.
+3. Sur iOS, `soleSufficientDate` retenait la date minimale **avant** d'écarter
+   les échéances passées : une plage close hier faisait taire une plage à venir
+   demain, dans la même règle.
+4. Une plage refermée sans avoir rien déclenché gardait son géorepérage armé
+   indéfiniment.
+
+*Leçon* : la revue ne vaut pas parce qu'elle relit le diff, mais parce qu'elle
+suit chaque champ nouveau jusque dans le code natif qui ne le connaît pas.
+
+### Le piège de l'auto-vérification : mes essais confirmaient ce qu'ils causaient
+
+Le défaut n° 1 mérite d'être isolé. Mon protocole était : provoquer un
+déclenchement, **rouvrir l'application**, constater « terminé ». Or c'est
+l'ouverture qui appliquait la garantie. Le test passait parce qu'il contenait
+la correction.
+
+*Leçon* : quand une garantie doit tenir application fermée, tout protocole qui
+ouvre l'application avant de conclure mesure autre chose.
+
+### Une correction qui en a cassé une autre
+
+Retirer du miroir natif toute règle qui vient de sonner a éteint le module de
+lieu, dont l'arrêt effaçait les zones occupées. Au réarmement, la zone paraissait
+neuve, l'amorce la redécouvrait occupée, et le rappel sonnait **immédiatement**
+— sans que rien n'ait été franchi. Trouvé en observant le fichier de
+préférences après un réarmement, pas en relisant le code.
+
+Correction : l'arrêt oublie ce qui est *enregistré auprès du système*, jamais ce
+qu'on *sait du monde*. Les deux plateformes avaient la même faute au même
+endroit.
+
