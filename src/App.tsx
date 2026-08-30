@@ -22,6 +22,13 @@ export function App(): React.JSX.Element {
       // l'application ne tournait pas, puis reconstruit le miroir natif. Cette
       // resynchronisation systématique rattrape toute divergence due à un
       // crash entre une écriture en base et sa synchronisation.
+      //
+      // **L'ordre porte la garantie du déclenchement unique.** Le natif a
+      // retiré de son miroir la règle qui vient de sonner ; c'est
+      // `applyPendingFiredEvents` qui inscrit `lastFiredAt` en base, et donc
+      // `buildRuleSnapshot` qui cesse ensuite de la transmettre. Resynchroniser
+      // d'abord la repousserait telle quelle, avec une ligne de base fraîche :
+      // elle sonnerait une seconde fois.
       await applyPendingFiredEvents();
       await resyncTriggerEngine();
 

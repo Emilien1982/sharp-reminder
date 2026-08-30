@@ -28,13 +28,11 @@ class BaselineTest {
         conditions: List<TriggerCondition> = listOf(lieu),
         combinator: Evaluator.Combinator = Evaluator.Combinator.AND,
         body: String = "Acheter du pain",
-        deleteAfterFire: Boolean = false,
     ) = RuleSnapshot(
         reminderId = "r-1",
         notificationBody = body,
         combinator = combinator,
         conditions = conditions,
-        deleteAfterFire = deleteAfterFire,
     )
 
     @Test
@@ -99,15 +97,5 @@ class BaselineTest {
         // Le texte n'influe pas sur la satisfaction : le réarmer ferait sonner
         // une règle déjà vraie pour une simple correction de faute de frappe.
         assertFalse(Baseline.needsReset(regle(body = "Avant"), regle(body = "Après")))
-    }
-
-    @Test
-    fun `changer le comportement apres declenchement ne reinitialise rien`() {
-        assertFalse(
-            Baseline.needsReset(
-                regle(deleteAfterFire = true),
-                regle(deleteAfterFire = false),
-            ),
-        )
     }
 }

@@ -7,7 +7,6 @@ struct RuleSnapshot {
     let notificationBody: String
     let combinator: Combinator
     let conditions: [TriggerCondition]
-    let deleteAfterFire: Bool
 
     static func from(json: [String: Any]) throws -> RuleSnapshot {
         guard let reminderId = json["reminderId"] as? String else {
@@ -26,8 +25,7 @@ struct RuleSnapshot {
             reminderId: reminderId,
             notificationBody: json["notificationBody"] as? String ?? "",
             combinator: combinator,
-            conditions: try TriggerCondition.list(from: rawConditions),
-            deleteAfterFire: json["deleteAfterFire"] as? Bool ?? false
+            conditions: try TriggerCondition.list(from: rawConditions)
         )
     }
 

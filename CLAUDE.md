@@ -119,6 +119,26 @@ C'est ce qui rend le ET possible — deux événements ne coïncident jamais, de
 Corollaire pour l'interface : tout libellé de condition doit décrire un état.
 Nommer ce champ « En arrivant » a fait croire à une limite qui n'existait pas.
 
+### Un rappel sonne une fois, et le natif ne le sait pas tout seul
+
+Depuis la phase 5, un rappel conservé ne resonne pas tant qu'on ne l'a pas
+modifié. Cette garantie est **portée par les deux couches à la fois**, et se
+casse si l'une d'elles change sans l'autre :
+
+- le natif retire de son miroir **toute** règle qui vient de sonner ;
+- `buildRuleSnapshot` ne la lui repousse que si `lastFiredAt` est nul, ce que
+  `needsRearm` rétablit quand les conditions ou le combinateur changent —
+  pendant JavaScript de `Baseline.needsReset`.
+
+D'où une dépendance à l'ordre au démarrage : `applyPendingFiredEvents` **avant**
+`resyncTriggerEngine`, sans quoi la règle est repoussée avant d'être marquée et
+sonne une seconde fois. C'est écrit dans `src/App.tsx`, à ne pas défaire.
+
+Une plage horaire refermée sans avoir rien déclenché rend la règle
+insatisfiable à jamais (`isExpired`) : elle quitte le snapshot au même titre,
+et son géorepérage s'éteint. L'écran de liste doit alors le dire, sans quoi un
+interrupteur allumé promettrait un rappel qui ne viendra pas.
+
 ### Le déclencheur date/heure diffère volontairement entre les deux plateformes
 
 Ce n'est pas une incohérence, c'est l'usage du meilleur outil de chaque système :

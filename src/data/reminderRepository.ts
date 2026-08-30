@@ -3,6 +3,7 @@ import type { DB } from '@op-engineering/op-sqlite';
 import { getDatabase } from '@/data/database';
 import { rowToReminder, serialiseConditions } from '@/data/reminderMapping';
 import { newId } from '@/domain/id';
+import { needsRearm } from '@/domain/reminders/rearm';
 import type {
   Reminder,
   ReminderDraft,
@@ -105,13 +106,18 @@ export function createReminderRepository(db: DB): ReminderRepository {
       const next: Reminder = {
         ...current,
         ...patch,
+        // Modifier ce qui déclenche un rappel le remet en jeu : sa marque de
+        // déclenchement est effacée, faute de quoi un rappel conservé et déjà
+        // sonné ne serait plus jamais transmis au moteur. Pendant natif de
+        // `Baseline.needsReset`, qui y remet la ligne de base.
+        lastFiredAt: needsRearm(current, patch) ? null : current.lastFiredAt,
         updatedAt: new Date().toISOString(),
       };
 
       await db.execute(
         `UPDATE reminders
             SET text = ?, enabled = ?, combinator = ?, conditions = ?,
-                after_fire = ?, updated_at = ?
+                after_fire = ?, updated_at = ?, last_fired_at = ?
           WHERE id = ?;`,
         [
           next.text,
@@ -120,6 +126,7 @@ export function createReminderRepository(db: DB): ReminderRepository {
           serialiseConditions(next.conditions),
           next.afterFire,
           next.updatedAt,
+          next.lastFiredAt,
           id,
         ],
       );

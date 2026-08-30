@@ -13,7 +13,6 @@ data class RuleSnapshot(
     val notificationBody: String,
     val combinator: Evaluator.Combinator,
     val conditions: List<TriggerCondition>,
-    val deleteAfterFire: Boolean,
 ) {
     companion object {
         fun fromJson(json: JSONObject) = RuleSnapshot(
@@ -21,7 +20,6 @@ data class RuleSnapshot(
             notificationBody = json.getString("notificationBody"),
             combinator = Evaluator.Combinator.fromWire(json.getString("combinator")),
             conditions = TriggerCondition.listFromJson(json.getJSONArray("conditions")),
-            deleteAfterFire = json.getBoolean("deleteAfterFire"),
         )
 
         fun listFromJson(raw: String): List<RuleSnapshot> {

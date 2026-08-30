@@ -127,12 +127,18 @@ enum TriggerEngine {
                         )
                     )
 
-                    if rule.deleteAfterFire {
-                        store.removeRule(reminderId: rule.reminderId)
-                        previous.removeValue(forKey: rule.reminderId)
-                        rulesRemoved = true
-                        continue
-                    }
+                    // Une règle qui vient de sonner quitte le miroir, qu'elle
+                    // soit à supprimer ou à conserver. Sans cela, une règle
+                    // conservée resonnait à chaque nouvelle transition tant que
+                    // l'application n'avait pas redémarré : repasser devant le
+                    // magasin pendant la plage renotifiait, alors que
+                    // `buildRuleSnapshot` croyait l'avoir retirée. Le
+                    // JavaScript décide ensuite du sort de la ligne en base, et
+                    // ne la repoussera ici qu'après un réarmement.
+                    store.removeRule(reminderId: rule.reminderId)
+                    previous.removeValue(forKey: rule.reminderId)
+                    rulesRemoved = true
+                    continue
                 }
 
                 previous[rule.reminderId] = currentlySatisfied

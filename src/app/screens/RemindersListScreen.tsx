@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { HeaderButton } from '@/app/components/HeaderButton';
-import { formatDateTime } from '@/app/formatting';
+import { formatDateTime, formatTime } from '@/app/formatting';
 import type { RootStackParamList } from '@/app/navigation/routes';
 import { getReminderRepository } from '@/data/reminderRepository';
 import {
@@ -23,6 +23,7 @@ import {
   updateReminder,
 } from '@/domain/reminders/reminderService';
 import type { Reminder } from '@/domain/reminders/types';
+import { isExpired } from '@/domain/triggers/expiry';
 import type { TriggerEngineDiagnostics } from '@/domain/triggers/snapshot';
 import type { TriggerCondition } from '@/domain/triggers/types';
 import { assertNeverCondition } from '@/domain/triggers/types';
@@ -96,8 +97,21 @@ export function RemindersListScreen({ navigation }: Props): React.JSX.Element {
   const describe = useCallback(
     (condition: TriggerCondition): string => {
       switch (condition.type) {
-        case 'datetime':
-          return formatDateTime(condition.at, i18n.language);
+        case 'datetime': {
+          const debut = formatDateTime(condition.at, i18n.language);
+          if (condition.until === undefined) {
+            return debut;
+          }
+          // Fenêtre d'une même journée : la date n'est répétée à la fin que si
+          // elle change, sans quoi la ligne devient illisible.
+          const memeJour =
+            new Date(condition.at).toDateString() ===
+            new Date(condition.until).toDateString();
+          const fin = memeJour
+            ? formatTime(condition.until, i18n.language)
+            : formatDateTime(condition.until, i18n.language);
+          return `${debut} → ${fin}`;
+        }
         case 'wifi':
           return `${t('triggers.wifi')} · ${condition.ssid}`;
         case 'bluetooth':
@@ -141,6 +155,36 @@ export function RemindersListScreen({ navigation }: Props): React.JSX.Element {
       ]);
     },
     [load, t],
+  );
+
+  /**
+   * État d'un rappel, en une ligne.
+   *
+   * Distingue « déjà déclenché » de « ne sonnera plus » : depuis que les
+   * rappels conservés ne sonnent qu'une fois, la seconde information est la
+   * seule qui explique un silence, et rien d'autre à l'écran ne la donne.
+   */
+  const describeState = useCallback(
+    (reminder: Reminder): string => {
+      if (!reminder.enabled) {
+        return t('reminders.inactive');
+      }
+      if (reminder.lastFiredAt === null) {
+        // Une plage refermée sans rien déclencher rend le rappel définitivement
+        // muet, et `buildRuleSnapshot` cesse de le transmettre. Le laisser
+        // afficher « Jamais déclenché » à côté d'un interrupteur allumé serait
+        // le mensonge le plus coûteux de cet écran.
+        return isExpired(reminder, new Date())
+          ? t('reminders.expired')
+          : t('reminders.neverFired');
+      }
+
+      const date = formatDateTime(reminder.lastFiredAt, i18n.language);
+      return reminder.afterFire === 'keep'
+        ? t('reminders.firedDone', { date })
+        : t('reminders.firedAt', { date });
+    },
+    [i18n.language, t],
   );
 
   const showActions = useCallback(
@@ -227,15 +271,7 @@ export function RemindersListScreen({ navigation }: Props): React.JSX.Element {
                   {item.text}
                 </Text>
                 <Text style={styles.rowMeta}>{summarise(item)}</Text>
-                <Text style={styles.rowMeta}>
-                  {item.enabled
-                    ? item.lastFiredAt === null
-                      ? t('reminders.neverFired')
-                      : t('reminders.firedAt', {
-                          date: formatDateTime(item.lastFiredAt, i18n.language),
-                        })
-                    : t('reminders.inactive')}
-                </Text>
+                <Text style={styles.rowMeta}>{describeState(item)}</Text>
               </Pressable>
 
               <Switch
