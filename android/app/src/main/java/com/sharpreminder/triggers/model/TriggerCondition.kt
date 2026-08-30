@@ -15,8 +15,10 @@ sealed interface TriggerCondition {
 
     data class DateTime(
         override val id: String,
-        /** Instant absolu ; le décalage horaire du JSON est déjà résolu. */
+        /** Début de fenêtre, inclus. Le décalage horaire du JSON est résolu. */
         val at: Instant,
+        /** Fin de fenêtre, exclue. `null` = pas de borne haute. */
+        val until: Instant? = null,
     ) : TriggerCondition
 
     data class Wifi(
@@ -52,7 +54,18 @@ sealed interface TriggerCondition {
         fun fromJson(json: JSONObject): TriggerCondition {
             val id = json.getString("id")
             return when (val type = json.getString("type")) {
-                "datetime" -> DateTime(id, parseIsoInstant(json.getString("at")))
+                "datetime" -> DateTime(
+                    id = id,
+                    at = parseIsoInstant(json.getString("at")),
+                    // `has` et non `optString` : un champ absent doit rester
+                    // absent, là où `optString` renverrait une chaîne vide que
+                    // l'analyseur de date rejetterait.
+                    until = if (json.has("until") && !json.isNull("until")) {
+                        parseIsoInstant(json.getString("until"))
+                    } else {
+                        null
+                    },
+                )
 
                 "wifi" -> Wifi(
                     id = id,

@@ -27,10 +27,17 @@ export function isConditionSatisfied(
   signal: SignalSnapshot,
 ): boolean {
   switch (condition.type) {
-    case 'datetime':
+    case 'datetime': {
       // Comparaison sur l'instant absolu : `at` porte son décalage horaire,
       // une comparaison de chaînes serait fausse entre deux fuseaux.
-      return Date.parse(signal.now) >= Date.parse(condition.at);
+      const now = Date.parse(signal.now);
+      // Borne haute exclue : à l'instant exact de `until`, la fenêtre est
+      // refermée. Choix symétrique de la borne basse, incluse.
+      return (
+        now >= Date.parse(condition.at) &&
+        (condition.until === undefined || now < Date.parse(condition.until))
+      );
+    }
 
     case 'wifi':
       return condition.direction === 'connect'

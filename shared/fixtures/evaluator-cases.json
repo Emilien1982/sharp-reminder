@@ -37,6 +37,57 @@
       "signal": { "now": "2026-08-20T18:00:01Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
       "expected": true
     },
+
+    {
+      "name": "fenetre : avant l'ouverture",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z", "until": "2026-08-29T18:00:00Z" }],
+      "signal": { "now": "2026-08-29T09:59:59Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "fenetre : a l'instant de l'ouverture, incluse",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z", "until": "2026-08-29T18:00:00Z" }],
+      "signal": { "now": "2026-08-29T10:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "fenetre : au milieu",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z", "until": "2026-08-29T18:00:00Z" }],
+      "signal": { "now": "2026-08-29T14:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "fenetre : a l'instant de la fermeture, exclue",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z", "until": "2026-08-29T18:00:00Z" }],
+      "signal": { "now": "2026-08-29T18:00:00Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "fenetre : apres la fermeture",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z", "until": "2026-08-29T18:00:00Z" }],
+      "signal": { "now": "2026-08-29T18:00:01Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": false
+    },
+    {
+      "name": "fenetre : bornes dans deux fuseaux differents",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T12:00:00+02:00", "until": "2026-08-29T15:00:00+01:00" }],
+      "signal": { "now": "2026-08-29T13:59:59Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+    {
+      "name": "sans borne haute : compatibilite du format anterieur",
+      "combinator": "OR",
+      "conditions": [{ "id": "c1", "type": "datetime", "at": "2026-08-29T10:00:00Z" }],
+      "signal": { "now": "2026-12-31T23:59:59Z", "wifiSsid": null, "connectedBluetoothDeviceIds": [], "insideLocationConditionIds": [] },
+      "expected": true
+    },
+
     {
       "name": "date : comparaison correcte entre deux fuseaux horaires",
       "combinator": "OR",

@@ -9,14 +9,14 @@ import Foundation
 /// nouvelle version d'une règle pour savoir si elle a changé de sens. La
 /// conformité est synthétisée : toutes les valeurs associées le sont déjà.
 enum TriggerCondition: Equatable {
-    case dateTime(id: String, at: Date)
+    case dateTime(id: String, at: Date, until: Date?)
     case wifi(id: String, ssid: String, onConnect: Bool)
     case bluetooth(id: String, deviceId: String, deviceName: String, onConnect: Bool)
     case location(id: String, latitude: Double, longitude: Double, radiusMeters: Double, onEnter: Bool)
 
     var id: String {
         switch self {
-        case let .dateTime(id, _): return id
+        case let .dateTime(id, _, _): return id
         case let .wifi(id, _, _): return id
         case let .bluetooth(id, _, _, _): return id
         case let .location(id, _, _, _, _): return id
@@ -91,7 +91,17 @@ extension TriggerCondition {
             guard let date = IsoTime.parse(raw) else {
                 throw TriggerParsingError.invalidDate(raw)
             }
-            return .dateTime(id: id, at: date)
+            // Un `until` absent doit rester absent : la fenêtre n'a alors
+            // pas de borne haute, ce qui est le format antérieur.
+            var until: Date?
+            if let rawUntil = json["until"] as? String {
+                guard let parsed = IsoTime.parse(rawUntil) else {
+                    throw TriggerParsingError.invalidDate(rawUntil)
+                }
+                until = parsed
+            }
+
+            return .dateTime(id: id, at: date, until: until)
 
         case "wifi":
             guard let ssid = json["ssid"] as? String else {

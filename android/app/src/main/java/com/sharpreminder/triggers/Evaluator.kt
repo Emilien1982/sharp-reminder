@@ -35,9 +35,11 @@ object Evaluator {
         signal: SignalSnapshot,
     ): Boolean = when (condition) {
         is TriggerCondition.DateTime ->
-            // `!isBefore` et non `isAfter` : l'instant exact doit satisfaire
-            // la condition, comme dans l'implémentation TypeScript.
-            !signal.now.isBefore(condition.at)
+            // `!isBefore` et non `isAfter` : l'instant exact d'ouverture
+            // satisfait la condition, comme en TypeScript et en Swift.
+            // La borne haute, elle, est exclue — choix symétrique.
+            !signal.now.isBefore(condition.at) &&
+                (condition.until == null || signal.now.isBefore(condition.until))
 
         is TriggerCondition.Wifi ->
             if (condition.onConnect) signal.wifiSsid == condition.ssid

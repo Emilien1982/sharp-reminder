@@ -40,8 +40,18 @@ interface BaseCondition {
 
 export interface DateTimeCondition extends BaseCondition {
   type: 'datetime';
-  /** Date et heure de déclenchement, au format ISO 8601 avec fuseau. */
+  /** Début de la fenêtre, au format ISO 8601 avec fuseau. */
   at: string;
+  /**
+   * Fin de la fenêtre, exclue. Absente = pas de borne haute.
+   *
+   * Un seul champ optionnel couvre les trois formes utiles :
+   * « après X » (`until` absent), « avant Y » (`at` à la création, `until` = Y)
+   * et « entre X et Y ». Ajouter trois types de conditions distincts aurait
+   * triplé la surface à répercuter en Kotlin et en Swift pour la même
+   * expressivité.
+   */
+  until?: string;
 }
 
 export interface WifiCondition extends BaseCondition {

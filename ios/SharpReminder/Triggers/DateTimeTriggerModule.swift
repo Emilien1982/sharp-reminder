@@ -37,11 +37,6 @@ final class DateTimeTriggerModule: TriggerModule {
         for rule in rules {
             guard let date = soleSufficientDate(in: rule) else { continue }
 
-            // Une échéance déjà passée n'est pas programmée : le système
-            // notifierait immédiatement, faisant sonner un rappel dont l'heure
-            // est révolue.
-            guard date > Date() else { continue }
-
             notifier.schedule(
                 reminderId: rule.reminderId,
                 body: rule.notificationBody,
@@ -63,9 +58,19 @@ final class DateTimeTriggerModule: TriggerModule {
     /// En OU, n'importe quelle date suffit — la plus proche est retenue.
     /// En ET, seule une règle réduite à cette unique condition qualifie.
     private func soleSufficientDate(in rule: RuleSnapshot) -> Date? {
+        let now = Date()
+
+        // Les échéances passées sont écartées **avant** le choix du minimum, et
+        // non après. Les filtrer après reviendrait à laisser une condition
+        // périmée fournir la date minimale, puis à renoncer à programmer toute
+        // la règle : en OU, une plage close hier ferait taire une plage encore
+        // à venir demain. Une échéance passée ne se programme de toute façon
+        // pas — le système notifierait immédiatement, pour une heure révolue.
         let dates = rule.conditions.compactMap { condition -> Date? in
-            if case let .dateTime(_, at) = condition { return at }
-            return nil
+            guard case let .dateTime(_, at, _) = condition, at > now else {
+                return nil
+            }
+            return at
         }
 
         guard !dates.isEmpty else { return nil }

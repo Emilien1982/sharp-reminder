@@ -23,10 +23,11 @@ enum Evaluator {
         _ signal: SignalSnapshot
     ) -> Bool {
         switch condition {
-        case let .dateTime(_, at):
-            // `>=` et non `>` : l'instant exact doit satisfaire la condition,
-            // comme dans les implémentations TypeScript et Kotlin.
-            return signal.now >= at
+        case let .dateTime(_, at, until):
+            // `>=` et non `>` : l'instant exact d'ouverture satisfait la
+            // condition, comme en TypeScript et en Kotlin. La borne haute est
+            // exclue — choix symétrique.
+            return signal.now >= at && (until == nil || signal.now < until!)
 
         case let .wifi(_, ssid, onConnect):
             return onConnect ? signal.wifiSsid == ssid : signal.wifiSsid != ssid
