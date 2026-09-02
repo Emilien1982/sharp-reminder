@@ -58,6 +58,7 @@ export const fr = {
       dateTimeInPast: 'Cette date est déjà passée.',
       radiusTooSmall: 'Le rayon doit faire au moins {{min}} mètres.',
       locationNotPlaced: 'Placez le lieu sur la carte.',
+      ssidRequired: 'Indiquez le réseau Wi-Fi.',
       windowInverted: 'La fin doit être après le début.',
       windowClosed: 'Cette plage horaire est déjà terminée.',
       windowAlreadyOpen:
@@ -85,6 +86,20 @@ export const fr = {
       backgroundRequired:
         'Localisation autorisée seulement quand l’app est ouverte : les rappels de lieu ne se déclencheront pas en arrière-plan. Choisissez « Toujours autoriser » dans les réglages.',
       openSettings: 'Ouvrir les réglages',
+    },
+    wifi: {
+      ssidLabel: 'Nom du réseau (SSID)',
+      ssidPlaceholder: 'Livebox-1A2B',
+      useCurrent: 'Utiliser le réseau actuel',
+      /** Mêmes libellés d'état que le lieu, et pour la même raison. */
+      direction: {
+        connect: 'Je suis connecté à ce réseau',
+        disconnect: 'Je ne suis pas connecté à ce réseau',
+      },
+      noNetwork: 'Aucun réseau Wi-Fi. Connectez-vous, puis réessayez.',
+      masked:
+        'Le système refuse de donner le nom du réseau. Activez la localisation du téléphone, puis réessayez.',
+      unsupported: 'Le Wi-Fi n’est pas encore disponible sur iOS.',
     },
   },
   notifications: {

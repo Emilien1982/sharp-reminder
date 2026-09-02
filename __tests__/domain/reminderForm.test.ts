@@ -458,13 +458,48 @@ describe('validateForm', () => {
     expect(validateForm(form, NOW)).toEqual([]);
   });
 
-  it('ne valide pas encore les types non constructibles', () => {
+  it('ne valide pas encore le Bluetooth, pas constructible', () => {
     const form: ReminderFormState = {
       ...validForm(),
-      conditions: [{ id: 'c-2', type: 'wifi', ssid: '', direction: 'connect' }],
+      conditions: [
+        {
+          id: 'c-2',
+          type: 'bluetooth',
+          deviceId: '00:11:22:33:44:55',
+          deviceName: 'Casque',
+          direction: 'connect',
+        },
+      ],
     };
 
     expect(validateForm(form, NOW)).toEqual([]);
+  });
+
+  describe('condition Wi-Fi', () => {
+    function avecSsid(ssid: string): ReminderFormState {
+      return {
+        ...validForm(),
+        conditions: [{ id: 'c-2', type: 'wifi', ssid, direction: 'connect' }],
+      };
+    }
+
+    it('accepte un réseau désigné', () => {
+      expect(validateForm(avecSsid('Livebox-1A2B'), NOW)).toEqual([]);
+    });
+
+    it('refuse un SSID vide', () => {
+      // Rien ne pourrait satisfaire cette condition : le rappel paraîtrait
+      // armé sans l'être.
+      expect(validateForm(avecSsid(''), NOW)).toEqual([
+        { code: 'ssidRequired', conditionId: 'c-2' },
+      ]);
+    });
+
+    it('refuse un SSID réduit à des espaces', () => {
+      expect(validateForm(avecSsid('   '), NOW)).toEqual([
+        { code: 'ssidRequired', conditionId: 'c-2' },
+      ]);
+    });
   });
 
   describe('date passée déjà enregistrée', () => {

@@ -53,6 +53,7 @@ export const en: TranslationResources = {
       dateTimeInPast: 'That date has already passed.',
       radiusTooSmall: 'The radius must be at least {{min}} metres.',
       locationNotPlaced: 'Place the location on the map.',
+      ssidRequired: 'Name the Wi-Fi network.',
       windowInverted: 'The end must be after the start.',
       windowClosed: 'That time window has already closed.',
       windowAlreadyOpen:
@@ -73,6 +74,19 @@ export const en: TranslationResources = {
       backgroundRequired:
         'Location is only allowed while the app is open: place reminders will not fire in the background. Choose “Allow all the time” in Settings.',
       openSettings: 'Open Settings',
+    },
+    wifi: {
+      ssidLabel: 'Network name (SSID)',
+      ssidPlaceholder: 'Livebox-1A2B',
+      useCurrent: 'Use the current network',
+      direction: {
+        connect: 'I am on this network',
+        disconnect: 'I am not on this network',
+      },
+      noNetwork: 'No Wi-Fi network. Connect, then try again.',
+      masked:
+        'The system refuses to give the network name. Turn on device location, then try again.',
+      unsupported: 'Wi-Fi is not available on iOS yet.',
     },
   },
   notifications: {

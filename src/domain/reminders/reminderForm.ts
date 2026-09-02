@@ -9,6 +9,7 @@ import type {
   DateTimeCondition,
   LocationCondition,
   TriggerCondition,
+  WifiCondition,
 } from '@/domain/triggers/types';
 import { assertNeverCondition } from '@/domain/triggers/types';
 
@@ -61,6 +62,11 @@ export type ReminderFormErrorCode =
    * rappel paraîtrait armé et ne sonnerait jamais.
    */
   | 'windowClosed'
+  /**
+   * Aucun réseau désigné. Une condition Wi-Fi sans SSID ne peut être
+   * satisfaite par rien : le rappel paraîtrait armé sans l'être.
+   */
+  | 'ssidRequired'
   /**
    * Fenêtre déjà ouverte à l'enregistrement, sans autre signal pour faire
    * basculer l'expression.
@@ -143,10 +149,8 @@ export function formToDraft(form: ReminderFormState): ReminderDraft {
 /**
  * Nouvelle condition date/heure, par défaut une heure plus tard.
  *
- * Seul type constructible en phase 3. Les phases 4 à 6 ajouteront une fabrique
- * par type : Wi-Fi et Bluetooth exigent une valeur que seul le natif peut
- * fournir (SSID visible, appareil appairé), il n'y a donc pas de valeur par
- * défaut raisonnable à inventer ici.
+ * Une fabrique par type : le Bluetooth attend encore la sienne, faute d'une
+ * valeur que seul le natif peut fournir (appareil appairé).
  */
 export function createDateTimeCondition(now: Date): DateTimeCondition {
   const at = new Date(now.getTime() + DEFAULT_OFFSET_MS);
@@ -180,6 +184,25 @@ export function isPlaced(condition: LocationCondition): boolean {
     condition.latitude !== UNPLACED.latitude ||
     condition.longitude !== UNPLACED.longitude
   );
+}
+
+/**
+ * Nouvelle condition Wi-Fi, sans réseau désigné.
+ *
+ * Le SSID reste vide à dessein : il n'y a pas de réseau par défaut
+ * raisonnable à inventer, et l'éditeur propose de capturer celui auquel le
+ * téléphone est connecté. Tant qu'il est vide, `validateForm` refuse
+ * l'enregistrement — même promesse que le lieu non positionné.
+ */
+export function createWifiCondition(): WifiCondition {
+  return {
+    id: newId(),
+    type: 'wifi',
+    ssid: '',
+    // « Je suis connecté » est le cas dominant, et le moins surprenant : la
+    // condition inverse est déjà vraie partout ailleurs qu'à portée du réseau.
+    direction: 'connect',
+  };
 }
 
 export function addCondition(
@@ -322,10 +345,15 @@ export function validateForm(
         }
         break;
 
-      // Rien à valider tant que ces types ne sont pas constructibles depuis
+      case 'wifi':
+        if (condition.ssid.trim().length === 0) {
+          errors.push({ code: 'ssidRequired', conditionId: condition.id });
+        }
+        break;
+
+      // Rien à valider tant que ce type n'est pas constructible depuis
       // l'interface. Le `default` ci-dessous garantit qu'aucun nouveau type ne
       // pourra être ajouté sans qu'on passe ici.
-      case 'wifi':
       case 'bluetooth':
         break;
 

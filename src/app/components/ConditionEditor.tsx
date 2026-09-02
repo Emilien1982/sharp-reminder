@@ -4,13 +4,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DateTimeConditionEditor } from '@/app/components/DateTimeConditionEditor';
 import { LocationConditionEditor } from '@/app/components/LocationConditionEditor';
+import { WifiConditionEditor } from '@/app/components/WifiConditionEditor';
 import type { TriggerCondition } from '@/domain/triggers/types';
 import { assertNeverCondition } from '@/domain/triggers/types';
 
 /**
  * Rend l'éditeur correspondant au type d'une condition.
  *
- * **C'est le point d'extension des phases 4 à 6.** Ajouter un membre à l'union
+ * **C'est le point d'extension de chaque nouveau déclencheur.** Ajouter un
+ * membre à l'union
  * `TriggerCondition` fera échouer la compilation ici, sur
  * `assertNeverCondition`, avec le nom exact du type à traiter — plutôt que de
  * produire un écran silencieusement incomplet.
@@ -38,11 +40,13 @@ function ConditionBody({
         <LocationConditionEditor condition={condition} onChange={onChange} />
       );
 
-    // Pas encore constructibles depuis l'interface : les phases 5 et 6 y
-    // substitueront un éditeur dédié. En attendant, une condition de ce type
-    // ne peut provenir que d'une base écrite par une version ultérieure — on
-    // l'affiche plutôt que de la faire disparaître silencieusement.
     case 'wifi':
+      return <WifiConditionEditor condition={condition} onChange={onChange} />;
+
+    // Pas encore constructible depuis l'interface : la phase 7 y substituera un
+    // éditeur dédié. En attendant, une condition de ce type ne peut provenir
+    // que d'une base écrite par une version ultérieure — on l'affiche plutôt
+    // que de la faire disparaître silencieusement.
     case 'bluetooth':
       return <NotEditableYet type={condition.type} />;
 
@@ -51,11 +55,7 @@ function ConditionBody({
   }
 }
 
-function NotEditableYet({
-  type,
-}: {
-  type: 'wifi' | 'bluetooth';
-}): React.JSX.Element {
+function NotEditableYet({ type }: { type: 'bluetooth' }): React.JSX.Element {
   const { t } = useTranslation();
 
   return <Text style={styles.notEditable}>{t(`triggers.${type}`)}</Text>;
