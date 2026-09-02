@@ -59,6 +59,23 @@ RCT_EXPORT_MODULE(TriggerEngine)
   resolve([TriggerEngineBridge drainFiredEventsJson]);
 }
 
+/**
+ * Le déclencheur Wi-Fi n'existe pas encore sur iOS : la réponse est donc
+ * « non pris en charge », et jamais « aucun réseau ».
+ *
+ * La distinction compte pour l'éditeur : « aucun réseau » invite à se connecter
+ * puis à réessayer, ce qui ne mènerait ici nulle part.
+ * `NEHotspotNetwork.fetchCurrent` exige la capacité
+ * `com.apple.developer.networking.wifi-info`, donc un profil de provisionnement
+ * que ce projet n'a pas, et le simulateur n'a de toute façon aucun réseau à
+ * rapporter.
+ */
+- (void)readCurrentWifi:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@"{\"status\":\"unsupported\"}");
+}
+
 - (void)getDiagnostics:(RCTPromiseResolveBlock)resolve
                 reject:(RCTPromiseRejectBlock)reject
 {

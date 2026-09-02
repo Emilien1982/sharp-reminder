@@ -84,6 +84,54 @@ export async function drainFiredEvents(): Promise<FiredEvent[]> {
   });
 }
 
+/**
+ * Ce que le natif sait du réseau Wi-Fi courant.
+ *
+ * Quatre issues et non deux, parce qu'elles appellent quatre messages
+ * différents dans l'éditeur : un SSID, aucun réseau, un nom refusé par le
+ * système faute de localisation, et une plateforme qui ne sait pas répondre.
+ * Les confondre reviendrait à afficher un champ vide sans rien expliquer.
+ */
+export type CurrentWifi =
+  | { status: 'connected'; ssid: string }
+  | { status: 'none' }
+  | { status: 'masked' }
+  | { status: 'unsupported' };
+
+export async function readCurrentWifi(): Promise<CurrentWifi> {
+  const raw = await NativeTriggerEngine.readCurrentWifi();
+  const parsed = parseJsonObject('readCurrentWifi', raw);
+  const status = parsed.status;
+
+  switch (status) {
+    case 'connected': {
+      const ssid = parsed.ssid;
+      if (typeof ssid !== 'string' || ssid.length === 0) {
+        throw new NativePayloadError(
+          'readCurrentWifi',
+          'ssid',
+          'une chaîne non vide',
+          ssid,
+        );
+      }
+      return { status, ssid };
+    }
+
+    case 'none':
+    case 'masked':
+    case 'unsupported':
+      return { status };
+
+    default:
+      throw new NativePayloadError(
+        'readCurrentWifi',
+        'status',
+        '"connected", "none", "masked" ou "unsupported"',
+        status,
+      );
+  }
+}
+
 export async function getDiagnostics(): Promise<TriggerEngineDiagnostics> {
   const raw = await NativeTriggerEngine.getDiagnostics();
   const parsed = parseJsonObject('getDiagnostics', raw);

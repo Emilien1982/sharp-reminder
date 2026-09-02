@@ -35,6 +35,7 @@ jest.mock('@/native/NativeTriggerEngine', () => ({
     syncRules: jest.fn(async () => undefined),
     getTriggerCosts: jest.fn(async () => '{"datetime":"light"}'),
     drainFiredEvents: jest.fn(async () => '[]'),
+    readCurrentWifi: jest.fn(async () => '{"status":"none"}'),
     getDiagnostics: jest.fn(
       async () =>
         '{"activeTriggerTypes":[],"ruleCount":0,"lastSignalAt":{},"notificationsAuthorized":true}',

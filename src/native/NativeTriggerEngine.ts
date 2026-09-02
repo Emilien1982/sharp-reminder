@@ -42,6 +42,19 @@ export interface Spec extends TurboModule {
   drainFiredEvents(): Promise<string>;
 
   /**
+   * Réseau Wi-Fi auquel le téléphone est rattaché à cet instant.
+   *
+   * Sert au bouton « Utiliser le réseau actuel » de l'éditeur. Renvoie un objet
+   * JSON `{ "status": "connected" | "none" | "masked", "ssid"?: string }`
+   * plutôt qu'une chaîne nullable : les trois issues appellent trois messages
+   * différents, et un champ vide sans explication serait la pire des trois.
+   *
+   * `masked` signifie que le système refuse le nom du réseau — permission de
+   * localisation retirée, ou service de position coupé.
+   */
+  readCurrentWifi(): Promise<string>;
+
+  /**
    * État interne du moteur, pour l'écran de diagnostic.
    *
    * @returns objet JSON `TriggerEngineDiagnostics`.

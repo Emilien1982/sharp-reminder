@@ -36,6 +36,14 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
+    <!--
+      Lecture du SSID. ACCESS_NETWORK_STATE est déjà apportée par React Native.
+      Aucune invite nouvelle : depuis Android 10, c'est la permission de
+      localisation — accordée en phase 4 — qui conditionne l'accès au nom du
+      réseau, et sans elle le système renvoie « <unknown ssid> ».
+    -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"

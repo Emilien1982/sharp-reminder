@@ -5,6 +5,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import com.facebook.react.module.annotations.ReactModule
+import com.sharpreminder.triggers.wifi.WifiReading
+import com.sharpreminder.triggers.wifi.WifiSsidReader
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -50,6 +52,20 @@ class TriggerEngineModule(
         runCatching { RuleSnapshotStore(context).drainFiredEvents() }
             .onSuccess { promise.resolve(it) }
             .onFailure { promise.reject("DRAIN_FAILED", it.message, it) }
+    }
+
+    override fun readCurrentWifi(promise: Promise) {
+        runCatching {
+            when (val reading = WifiSsidReader.current(context)) {
+                is WifiReading.Connectee ->
+                    JSONObject().put("status", "connected").put("ssid", reading.ssid)
+
+                WifiReading.Absente -> JSONObject().put("status", "none")
+                WifiReading.Masquee -> JSONObject().put("status", "masked")
+            }.toString()
+        }
+            .onSuccess { promise.resolve(it) }
+            .onFailure { promise.reject("WIFI_READ_FAILED", it.message, it) }
     }
 
     override fun getDiagnostics(promise: Promise) {

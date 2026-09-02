@@ -7,6 +7,7 @@ import com.sharpreminder.triggers.model.RuleSnapshot
 import com.sharpreminder.triggers.model.SignalSnapshot
 import com.sharpreminder.triggers.model.TriggerType
 import com.sharpreminder.triggers.model.triggerType
+import com.sharpreminder.triggers.wifi.WifiTriggerModule
 
 /**
  * Registre des modules de déclencheurs.
@@ -24,7 +25,8 @@ class TriggerRegistry(context: Context) {
     private val modules: List<TriggerModule> = listOf(
         DateTimeTriggerModule(context),
         LocationTriggerModule(context),
-        // Les modules Wi-Fi et Bluetooth viendront ici.
+        WifiTriggerModule(context),
+        // Le module Bluetooth viendra ici.
     )
 
     private val activeTypes = mutableSetOf<TriggerType>()
