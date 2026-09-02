@@ -594,3 +594,63 @@ Correction : l'arrêt oublie ce qui est *enregistré auprès du système*, jamai
 qu'on *sait du monde*. Les deux plateformes avaient la même faute au même
 endroit.
 
+
+---
+
+## Phase 6 — Déclencheur Wi-Fi, et arrêt du projet
+
+### Le seul déclencheur dont la logique existait avant le capteur
+
+`WifiCondition` était dans le modèle depuis la phase 2, l'évaluateur la traitait
+dans les trois langages, et douze cas partagés la couvraient. Cette phase n'a
+donc rien conçu : elle a branché un capteur sur une logique déjà écrite. Ces
+douze cas n'ont pas bougé d'un caractère, et c'est le meilleur argument qu'on
+puisse donner pour le garde-fou des fixtures partagées.
+
+### Ce que la plateforme n'a pas voulu donner
+
+Le plan reposait sur `registerNetworkCallback(NetworkRequest, PendingIntent)`,
+vérifié **dans le `android.jar` installé** plutôt que de mémoire. La signature
+existe, la documentation promet le réveil d'un processus mort, et le
+géorepérage de la phase 4 fonctionne exactement ainsi.
+
+Sur le Galaxy S21 / Android 15 : **zéro diffusion**, dans les deux sens,
+y compris application au premier plan et processus vivant. Aucune exception,
+aucun journal, `dumpsys connectivity` sans trace de la demande. Un échec
+parfaitement muet — le mode de défaillance que ce projet aura combattu de bout
+en bout.
+
+Repli sur un `NetworkCallback` ordinaire : il fonctionne, et meurt avec le
+processus. Le Wi-Fi devient donc *best-effort* sur Android aussi. C'est ce
+constat qui a décidé l'arrêt du projet.
+
+### Trois défauts de méthode, tous à moi
+
+1. **`Alert.alert` n'accepte que trois boutons sur Android.** En ajoutant le
+   Wi-Fi comme quatrième, il a été supprimé **en silence** : l'alerte s'ouvrait,
+   sans lui, sans erreur. Vu seulement en pilotant l'écran. Remplacé par une
+   liste dans la page, qui n'a pas de plafond.
+2. **`am force-stop` fausse tout essai « application tuée ».** Il place le
+   paquet dans l'état *stopped*, où Android **cesse de lui délivrer les
+   diffusions** — ce qui n'arrive jamais quand l'utilisateur balaie l'app. Une
+   partie des mesures de la phase 5 portait donc sur autre chose que ce qu'elles
+   prétendaient mesurer. `am kill` est le bon outil.
+3. **Le contrôle positif oublié, une fois de plus.** J'ai conclu « le Wi-Fi ne
+   se déclenche pas » d'un journal vide alors que la règle avait déjà sonné et
+   été retirée du moteur : je mesurais zéro règle. C'est la quatrième fois de ce
+   projet. Ce n'est plus une distraction, c'est un réflexe manquant.
+
+### Depuis Android 12, le SSID lu par `getNetworkCapabilities` est expurgé
+
+Le `WifiInfo` obtenu ainsi renvoie `<unknown ssid>` même avec toutes les
+permissions accordées et la localisation active — il n'est complet que délivré
+à un `NetworkCallback` vivant. L'éditeur affichait « le système refuse de
+donner le nom du réseau » alors que rien ne manquait. Le `WifiManager`,
+pourtant déprécié, répond correctement : c'est lui qui sert de repli.
+
+### Pourquoi le projet s'arrête
+
+Deux déclencheurs sur quatre tiennent la promesse « application tuée ». Les
+deux autres sont bridés par les systèmes, et ce sont ceux qui distinguaient
+l'application. Ce qui reste — date et lieu — existe déjà partout. Le détail est
+dans le README.

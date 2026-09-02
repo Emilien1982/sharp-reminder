@@ -95,8 +95,9 @@ UI, édition, i18n      ──push──▶   RuleSnapshotStore (miroir lecture 
 
 Elles sont structurelles, pas contournables :
 
-- **Wi-Fi** : `NEHotspotNetwork.fetchCurrent` ne fonctionne qu'app active. Aucun
-  callback de changement de SSID en arrière-plan.
+- **Wi-Fi** : `NEHotspotNetwork.fetchCurrent` ne fonctionne qu'app active, et
+  exige la capacité `com.apple.developer.networking.wifi-info` — donc un compte
+  développeur payant. Aucun callback de changement de SSID en arrière-plan.
 - **Bluetooth** : CoreBluetooth ne voit pas les appareils appairés classiques
   (casque, voiture). Contournement partiel via `AVAudioSession.routeChange`.
 - **Géolocalisation** : fonctionne bien, mais **20 régions surveillées maximum**.
@@ -155,6 +156,17 @@ pas être confiée au système iOS, qui notifierait sans vérifier le reste. Ces
 règles sont évaluées au retour au premier plan. `RuleSnapshotStore` marque les
 règles confiées au système (`osScheduledRuleIds`) afin que la réévaluation
 suivante ne publie pas une seconde notification pour un rappel déjà délivré.
+
+## La limite Wi-Fi n'est pas propre à iOS
+
+Mesurée sur Galaxy S21 / Android 15 : `registerNetworkCallback(NetworkRequest,
+PendingIntent)` — la seule API qui promette de réveiller un processus mort sur
+changement de réseau — **ne délivre aucune diffusion**, sans lever d'exception.
+`CONNECTIVITY_ACTION` étant fermé aux récepteurs du manifeste depuis Android 8,
+il ne reste qu'un `NetworkCallback` vivant, qui meurt avec le processus.
+
+Le Wi-Fi est donc *best-effort* des deux côtés. C'est la raison de l'arrêt du
+projet, détaillée dans le README.
 
 ## Hors périmètre V1
 
